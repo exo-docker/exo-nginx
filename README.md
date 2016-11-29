@@ -1,6 +1,10 @@
 # eXo Nginx container
 
 The repository is a build of Nginx with Google Page Speed module activated.
+
+## Usage
+
+This image can be use in the same way the official [nginx image](https://hub.docker.com/_/nginx/)
  
 ## List of activated modules :
 

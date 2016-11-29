@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 lib
     mkdir -p /var/log/nginx /var/cache/nginx/ && \
     ln -s /dev/stdout /var/log/nginx/access.log && \
     ln -s /dev/sterr /var/log/nginx/error.log && \
-    useradd --create-home --user-group -u 999 --shell /bin/nologin
+    useradd --create-home --user-group -u 999 --shell /bin/nologin nginx
 
 COPY nginx.conf /etc/nginx/
 

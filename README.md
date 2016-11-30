@@ -10,6 +10,7 @@ This image can be use in the same way the official [nginx image](https://hub.doc
 
 * http_ssl_module 
 * ngx_pagespeed-release
+* ngx_headers_more
 * http_addition_module 
 * http_gunzip_module 
 * http_gzip_static_module 

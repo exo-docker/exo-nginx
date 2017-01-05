@@ -7,7 +7,7 @@ ENV NGINX_VERSION=1.11.6
 ENV MORE_HEADERS_VERSION=0.32
 ENV BUILD_DIR=/tmp/build
 
-RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 libpcre3-dev unzip wget curl libssl-dev && \
+RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 libpcre3-dev unzip wget curl libssl-dev dnsmasq && \
     mkdir /tmp/build && \
     cd ${BUILD_DIR} && wget https://github.com/pagespeed/ngx_pagespeed/archive/release-${NPS_VERSION}-beta.zip && \
     unzip release-${NPS_VERSION}-beta.zip && \
@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 lib
     tar -xzvf ${NPS_VERSION}.tar.gz && \
     cd ${BUILD_DIR} && \
     wget https://github.com/openresty/headers-more-nginx-module/archive/v${MORE_HEADERS_VERSION}.tar.gz && \
-    tar -xzf v${MORE_HEADERS_VERSION}.tar.gz && \ 
+    tar -xzf v${MORE_HEADERS_VERSION}.tar.gz && \
     wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
     tar -xvzf nginx-${NGINX_VERSION}.tar.gz && \
     cd ${BUILD_DIR}/nginx-${NGINX_VERSION} && \
@@ -28,6 +28,10 @@ RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 lib
     ln -s /dev/sterr /var/log/nginx/error.log && \
     useradd --create-home --user-group -u 999 --shell /bin/nologin nginx
 
+RUN apt-get update && apt-get -y install supervisor
 COPY nginx.conf /etc/nginx/
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY dnsmasq.conf /etc/dnsmasq.conf
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/usr/bin/supervisord"]
+

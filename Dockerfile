@@ -7,7 +7,7 @@ ENV NGINX_VERSION=1.11.6
 ENV MORE_HEADERS_VERSION=0.32
 ENV BUILD_DIR=/tmp/build
 
-RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 libpcre3-dev unzip wget curl libssl-dev dnsmasq && \
+RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 libpcre3-dev unzip wget curl libssl-dev dnsmasq supervisor && \
     mkdir /tmp/build && \
     cd ${BUILD_DIR} && wget https://github.com/pagespeed/ngx_pagespeed/archive/release-${NPS_VERSION}-beta.zip && \
     unzip release-${NPS_VERSION}-beta.zip && \
@@ -28,7 +28,6 @@ RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 lib
     ln -s /dev/sterr /var/log/nginx/error.log && \
     useradd --create-home --user-group -u 999 --shell /bin/nologin nginx
 
-RUN apt-get update && apt-get -y install supervisor
 COPY nginx.conf /etc/nginx/
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY dnsmasq.conf /etc/dnsmasq.conf

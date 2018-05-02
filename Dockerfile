@@ -51,7 +51,8 @@ RUN mkdir ${BUILD_DIR} && \
       --with-http_realip_module \
       --with-http_v2_module \
       --with-stream \
-      --with-stream_ssl_module && \
+      --with-stream_ssl_module \
+      --with-http_stub_status_module && \
     make -j 4 install && \
     rm -rf ${BUILD_DIR}  && \
     mkdir -p /var/log/nginx /var/cache/nginx/ && \

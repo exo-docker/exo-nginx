@@ -90,4 +90,6 @@ COPY nginx.conf /etc/nginx/
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY dnsmasq.conf /etc/dnsmasq.conf
 
+EXPOSE 80 443
+
 CMD ["/usr/bin/supervisord"]

@@ -1,6 +1,6 @@
 # eXo Nginx container
 
-The repository is a build of Nginx with Google Page Speed module activated.
+The repository is a build of Nginx with Google Page Speed module activated and Nginx sticky module.
 
 ## Usage
 
@@ -8,6 +8,7 @@ This image can be use in the same way the official [nginx image](https://hub.doc
 
 ## List of activated modules :
 
+* [nginx-sticky-module-ng](https://github.com/Refinitiv/nginx-sticky-module-ng.git)
 * http_ssl_module
 * ngx_pagespeed-release
 * ngx_headers_more

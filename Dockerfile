@@ -1,11 +1,11 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 MAINTAINER eXo Platform <docker@exoplatform.com>
 
 ENV NPS_VERSION=1.13.35.2
 ENV NPS_FULL_VERSION=1.13.35.2-stable
 ENV NPS_DIR_NAME=incubator-pagespeed-ngx-${NPS_FULL_VERSION}
-ENV NGINX_VERSION=1.18.0
+ENV NGINX_VERSION=1.20.0
 ENV MORE_HEADERS_VERSION=0.33
 ENV BUILD_DIR=/tmp/build
 
@@ -73,7 +73,7 @@ WORKDIR /
 RUN mkdir -p /var/log/nginx /var/cache/nginx/ \
     && ln -s /dev/stdout /var/log/nginx/access.log \
     && ln -s /dev/sterr /var/log/nginx/error.log \
-    && useradd --create-home --user-group -u 999 --shell /bin/nologin nginx
+    && useradd --create-home --user-group -u 999 --shell /bin/false nginx
 
 COPY nginx.conf /etc/nginx/
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf

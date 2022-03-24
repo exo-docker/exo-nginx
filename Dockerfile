@@ -7,6 +7,7 @@ ENV NPS_FULL_VERSION=1.13.35.2-stable
 ENV NPS_DIR_NAME=incubator-pagespeed-ngx-${NPS_FULL_VERSION}
 ENV NGINX_VERSION=1.21.4
 ENV MORE_HEADERS_VERSION=0.33
+ENV SECURITY_HEADERS_VERSION=0.0.9
 ENV BUILD_DIR=/tmp/build
 
 RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 libpcre3-dev uuid-dev unzip wget curl libssl-dev dnsmasq supervisor libldap2-dev git && \
@@ -31,6 +32,9 @@ RUN cd ${BUILD_DIR} && wget -O nginx-upstream-jvm-route.zip https://github.com/n
     && cp nginx-upstream-jvm-route/*/* nginx-upstream-jvm-route/ \
     && rm -rf nginx-upstream-jvm-route/nginx-upstream-jvm-route-*
 
+RUN cd ${BUILD_DIR} && wget -O nginx-security-headers.zip https://github.com/GetPageSpeed/ngx_security_headers/archive/refs/tags/${SECURITY_HEADERS_VERSION}.zip \
+    && unzip -d . nginx-security-headers.zip
+
 WORKDIR ${BUILD_DIR}/nginx-${NGINX_VERSION}
 
 RUN  patch -p0 < ../nginx-upstream-jvm-route/jvm_route.patch \
@@ -54,6 +58,7 @@ RUN  patch -p0 < ../nginx-upstream-jvm-route/jvm_route.patch \
         --add-module=${BUILD_DIR}/${NPS_DIR_NAME} \
         --add-module=${BUILD_DIR}/nginx-auth-ldap ${PS_NGX_EXTRA_FLAGS} \
         --add-module=${BUILD_DIR}/nginx-upstream-jvm-route \
+        --add-module=${BUILD_DIR}/ngx_security_headers-${SECURITY_HEADERS_VERSION} \
         --with-file-aio \
         --with-threads \
         --with-http_addition_module \

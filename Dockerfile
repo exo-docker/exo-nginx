@@ -7,7 +7,7 @@ ENV NPS_FULL_VERSION=1.13.35.2-stable
 ENV NPS_DIR_NAME=incubator-pagespeed-ngx-${NPS_FULL_VERSION}
 ENV NGINX_VERSION=1.21.4
 ENV MORE_HEADERS_VERSION=0.33
-ENV SECURITY_HEADERS_VERSION=0.0.9
+ENV SECURITY_HEADERS_VERSION=0.0.11
 ENV BUILD_DIR=/tmp/build
 
 RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 libpcre3-dev uuid-dev unzip wget curl libssl-dev dnsmasq supervisor libldap2-dev git && \

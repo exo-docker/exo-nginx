@@ -1,11 +1,11 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 MAINTAINER eXo Platform <docker@exoplatform.com>
 
 ENV NPS_VERSION=1.13.35.2
 ENV NPS_FULL_VERSION=1.13.35.2-stable
 ENV NPS_DIR_NAME=incubator-pagespeed-ngx-${NPS_FULL_VERSION}
-ENV NGINX_VERSION=1.21.4
+ENV NGINX_VERSION=1.21.6
 ENV MORE_HEADERS_VERSION=0.33
 ENV SECURITY_HEADERS_VERSION=0.0.11
 ENV BUILD_DIR=/tmp/build
@@ -20,7 +20,7 @@ RUN mkdir ${BUILD_DIR} \
     && cd ${BUILD_DIR} \
     && wget https://github.com/openresty/headers-more-nginx-module/archive/v${MORE_HEADERS_VERSION}.tar.gz \
     && tar -xzf v${MORE_HEADERS_VERSION}.tar.gz \
-    && cd ${BUILD_DIR} && git clone https://github.com/kvspb/nginx-auth-ldap.git && cd nginx-auth-ldap && git checkout 42d195d7a7575ebab1c369ad3fc5d78dc2c2669c \
+    && cd ${BUILD_DIR} && git clone https://github.com/kvspb/nginx-auth-ldap.git && cd nginx-auth-ldap && git checkout 83c059b73566c2ee9cbda920d91b66657cf120b7 \
     && cd ${BUILD_DIR} && wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz \
     && tar -xzf nginx-${NGINX_VERSION}.tar.gz \
     && cd ${BUILD_DIR}/${NPS_DIR_NAME} \

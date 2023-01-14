@@ -1,89 +1,297 @@
-FROM ubuntu:20.04
+# https://hg.nginx.org/nginx-quic/fie/tip/src/core/nginx.h
+ARG NGINX_VERSION=1.24.0
 
-MAINTAINER eXo Platform <docker@exoplatform.com>
+# https://hg.nginx.org/nginx-quic/shortlog/quic
+ARG NGINX_COMMIT=91ad1abfb285
 
-ENV NPS_VERSION=1.13.35.2
-ENV NPS_FULL_VERSION=71e24c1c47113acb5924d8cb523d572b376e9dd0
-ENV NPS_DIR_NAME=incubator-pagespeed-ngx-${NPS_FULL_VERSION}
-ENV NGINX_VERSION=1.24.0
-ENV MORE_HEADERS_VERSION=0.34
-ENV SECURITY_HEADERS_VERSION=0.0.11
-ENV BUILD_DIR=/tmp/build
+# https://github.com/google/ngx_brotli
+ARG NGX_BROTLI_COMMIT=6e975bcb015f62e1f303054897783355e2a877dc
 
-RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 libpcre3-dev uuid-dev unzip wget curl libssl-dev dnsmasq supervisor libldap2-dev git && \
-    rm -rf /var/lib/apt/lists/*
+# https://github.com/google/boringssl
+ARG BORINGSSL_COMMIT=8ce0e1c14e48109773f1e94e5f8b020aa1e24dc5
 
-RUN mkdir ${BUILD_DIR} \
-    && cd ${BUILD_DIR} && wget -O nps.zip https://github.com/apache/incubator-pagespeed-ngx/archive/${NPS_FULL_VERSION}.zip \
-    && unzip nps.zip \
-    && cd ${NPS_DIR_NAME} \
-    && cd ${BUILD_DIR} \
-    && wget https://github.com/openresty/headers-more-nginx-module/archive/v${MORE_HEADERS_VERSION}.tar.gz \
-    && tar -xzf v${MORE_HEADERS_VERSION}.tar.gz \
-    && cd ${BUILD_DIR} && git clone https://github.com/kvspb/nginx-auth-ldap.git && cd nginx-auth-ldap && git checkout 42d195d7a7575ebab1c369ad3fc5d78dc2c2669c \
-    && cd ${BUILD_DIR} && wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz \
-    && tar -xzf nginx-${NGINX_VERSION}.tar.gz \
-    && cd ${BUILD_DIR}/${NPS_DIR_NAME} \
-    && wget -O psol.tar.gz https://dl.google.com/dl/page-speed/psol/${NPS_VERSION}-x64.tar.gz \
-    && tar -xzvf psol.tar.gz
+# https://github.com/kvspb/nginx-auth-ldap/releases
+ARG LDAP_AUTH_COMMIT=42d195d7a7575ebab1c369ad3fc5d78dc2c2669c
 
-RUN cd ${BUILD_DIR} && wget -O nginx-upstream-jvm-route.zip https://github.com/nulab/nginx-upstream-jvm-route/archive/c4c92e797c0a06840017bf5c881378dabf6490a5.zip \
-    && unzip -d nginx-upstream-jvm-route nginx-upstream-jvm-route.zip \
-    && cp nginx-upstream-jvm-route/*/* nginx-upstream-jvm-route/ \
-    && rm -rf nginx-upstream-jvm-route/nginx-upstream-jvm-route-*
+# http://hg.nginx.org/njs
+ARG NJS_COMMIT=b33aae5e8dc6
 
-RUN cd ${BUILD_DIR} && wget -O nginx-security-headers.zip https://github.com/GetPageSpeed/ngx_security_headers/archive/refs/tags/${SECURITY_HEADERS_VERSION}.zip \
-    && unzip -d . nginx-security-headers.zip
+# https://github.com/nulab/nginx-upstream-jvm-route
+ARG NGINX_UPSTREAM_JVM_ROUTE_COMMIT=c4c92e797c0a06840017bf5c881378dabf6490a5
 
-WORKDIR ${BUILD_DIR}/nginx-${NGINX_VERSION}
+# https://github.com/openresty/headers-more-nginx-module#installation
+# we want to have https://github.com/openresty/headers-more-nginx-module/commit/e536bc595d8b490dbc9cf5999ec48fca3f488632
+ARG HEADERS_MORE_VERSION=0.34
 
-RUN  patch -p0 < ../nginx-upstream-jvm-route/jvm_route.patch \
-     && ./configure \
-        --prefix=/etc/nginx \
-        --sbin-path=/usr/sbin/nginx \
-        --modules-path=/usr/lib/nginx/modules \
-        --conf-path=/etc/nginx/nginx.conf \
-        --error-log-path=/var/log/nginx/error.log \
-        --http-log-path=/var/log/nginx/access.log \
-        --pid-path=/var/run/nginx.pid \
-        --lock-path=/var/run/nginx.lock \
-        --http-client-body-temp-path=/var/cache/nginx/client_temp \
-        --with-http_ssl_module \
-        --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
-        --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
-        --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
-        --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
-        --user=nginx --group=nginx \
-        --add-module=${BUILD_DIR}/headers-more-nginx-module-${MORE_HEADERS_VERSION} \
-        --add-module=${BUILD_DIR}/${NPS_DIR_NAME} \
-        --add-module=${BUILD_DIR}/nginx-auth-ldap ${PS_NGX_EXTRA_FLAGS} \
-        --add-module=${BUILD_DIR}/nginx-upstream-jvm-route \
-        --add-module=${BUILD_DIR}/ngx_security_headers-${SECURITY_HEADERS_VERSION} \
-        --with-file-aio \
-        --with-threads \
-        --with-http_addition_module \
-        --with-http_gunzip_module \
-        --with-http_gzip_static_module \
-        --with-http_auth_request_module \
-        --with-http_realip_module \
-        --with-http_v2_module \
-        --with-stream \
-        --with-stream_ssl_module \
-        --with-http_stub_status_module \
-    && make -j 4 install \
-    && rm -rf ${BUILD_DIR}
+#https://github.com/GetPageSpeed/ngx_security_headers
+ARG SECURITY_HEADERS_VERSION=0.0.11
 
-WORKDIR /
+# https://github.com/leev/ngx_http_geoip2_module/releases
+ARG GEOIP2_VERSION=3.4
 
-RUN mkdir -p /var/log/nginx /var/cache/nginx/ \
-    && ln -s /dev/stdout /var/log/nginx/access.log \
-    && ln -s /dev/sterr /var/log/nginx/error.log \
-    && useradd --create-home --user-group -u 999 --shell /bin/false nginx
+# https://hg.nginx.org/nginx-quic/file/quic/README#l72
+ARG CONFIG="\
+		--build=quic-$NGINX_COMMIT-boringssl-$BORINGSSL_COMMIT \
+		--prefix=/etc/nginx \
+		--sbin-path=/usr/sbin/nginx \
+		--modules-path=/usr/lib/nginx/modules \
+		--conf-path=/etc/nginx/nginx.conf \
+		--error-log-path=/var/log/nginx/error.log \
+		--http-log-path=/var/log/nginx/access.log \
+		--pid-path=/var/run/nginx.pid \
+		--lock-path=/var/run/nginx.lock \
+		--http-client-body-temp-path=/var/cache/nginx/client_temp \
+		--http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+		--http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
+		--http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
+		--http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+		--user=nginx \
+		--group=nginx \
+		--with-http_ssl_module \
+		--with-http_realip_module \
+		--with-http_addition_module \
+		--with-http_sub_module \
+		--with-http_dav_module \
+		--with-http_flv_module \
+		--with-http_mp4_module \
+		--with-http_gunzip_module \
+		--with-http_gzip_static_module \
+		--with-http_random_index_module \
+		--with-http_secure_link_module \
+		--with-http_stub_status_module \
+		--with-http_auth_request_module \
+		--with-http_xslt_module=dynamic \
+		--with-http_image_filter_module=dynamic \
+		--with-http_geoip_module=dynamic \
+		--with-http_perl_module=dynamic \
+		--with-threads \
+		--with-stream \
+		--with-stream_ssl_module \
+		--with-stream_ssl_preread_module \
+		--with-stream_realip_module \
+		--with-stream_geoip_module=dynamic \
+		--with-http_slice_module \
+		--with-mail \
+		--with-mail_ssl_module \
+		--with-compat \
+		--with-file-aio \
+		--with-http_v2_module \
+		--with-http_v3_module \
+		--add-module=/usr/src/ngx_brotli \
+		--add-module=/usr/src/headers-more-nginx-module-$HEADERS_MORE_VERSION \
+		--add-module=/usr/src/ngx_security_headers-${SECURITY_HEADERS_VERSION} \
+		--add-module=/usr/src/njs/nginx \
+		--add-module=/usr/src/nginx-auth-ldap \
+		--add-dynamic-module=/usr/src/ngx_http_geoip2_module \
+	"
 
-COPY nginx.conf /etc/nginx/
+FROM alpine:3.17 AS base
+
+ARG NGINX_VERSION
+ARG NGINX_COMMIT
+ARG NGX_BROTLI_COMMIT
+ARG LDAP_AUTH_COMMIT
+ARG NGINX_UPSTREAM_JVM_ROUTE_COMMIT
+ARG HEADERS_MORE_VERSION
+ARG SECURITY_HEADERS_VERSION
+ARG NJS_COMMIT
+ARG GEOIP2_VERSION
+ARG CONFIG
+
+RUN \
+	apk add --no-cache --virtual .build-deps \
+		gcc \
+		libc-dev \
+		make \
+		musl-dev \
+		go \
+		ninja \
+		mercurial \
+		openssl-dev \
+		pcre-dev \
+		zlib-dev \
+		linux-headers \
+		gnupg \
+		libxslt-dev \
+		gd-dev \
+		geoip-dev \
+		perl-dev \
+		ldb-dev \
+		libldap \
+		openldap-dev \
+		patch \
+		dnsmasq \ 
+		supervisor \
+	&& apk add --no-cache --virtual .brotli-build-deps \
+		autoconf \
+		libtool \
+		automake \
+		git \
+		g++ \
+		cmake \
+	&& apk add --no-cache --virtual .geoip2-build-deps \
+		libmaxminddb-dev \
+	&& apk add --no-cache --virtual .njs-build-deps \
+		readline-dev
+
+WORKDIR /usr/src/
+
+RUN \
+	echo "Cloning nginx $NGINX_VERSION (rev $NGINX_COMMIT from 'quic' branch) ..." \
+	&& hg clone -b quic --rev $NGINX_COMMIT https://hg.nginx.org/nginx-quic /usr/src/nginx-$NGINX_VERSION
+
+RUN \
+	echo "Cloning brotli $NGX_BROTLI_COMMIT ..." \
+	&& mkdir /usr/src/ngx_brotli \
+	&& cd /usr/src/ngx_brotli \
+	&& git init \
+	&& git remote add origin https://github.com/google/ngx_brotli.git \
+	&& git fetch --depth 1 origin $NGX_BROTLI_COMMIT \
+	&& git checkout --recurse-submodules -q FETCH_HEAD \
+	&& git submodule update --init --depth 1
+
+# hadolint ignore=SC2086
+RUN \
+  echo "Cloning boringssl ..." \
+  && cd /usr/src \
+  && git clone https://github.com/google/boringssl \
+  && cd boringssl \
+  && git checkout $BORINGSSL_COMMIT
+
+RUN \
+  echo "Building boringssl ..." \
+  && cd /usr/src/boringssl \
+  && mkdir build \
+  && cd build \
+  && cmake -GNinja .. \
+  && ninja
+
+RUN \
+  echo "Downloading headers-more-nginx-module ..." \
+  && cd /usr/src \
+  && wget -q https://github.com/openresty/headers-more-nginx-module/archive/refs/tags/v${HEADERS_MORE_VERSION}.tar.gz -O headers-more-nginx-module.tar.gz \
+  && tar -xf headers-more-nginx-module.tar.gz
+
+RUN \
+  echo "Downloading ngx_security_headers-module ..." \
+  && cd /usr/src \
+  && wget -q https://github.com/GetPageSpeed/ngx_security_headers/archive/refs/tags/${SECURITY_HEADERS_VERSION}.tar.gz -O ngx_security_headers.tar.gz \
+  && tar -xf ngx_security_headers.tar.gz
+
+RUN \
+  echo "Downloading ngx_http_geoip2_module ..." \
+  && git clone --depth 1 --branch ${GEOIP2_VERSION} https://github.com/leev/ngx_http_geoip2_module /usr/src/ngx_http_geoip2_module
+
+RUN \
+  echo "Cloning nginx-auth-ldap ..." \
+  && cd /usr/src \
+  && git clone https://github.com/kvspb/nginx-auth-ldap.git \
+  && cd nginx-auth-ldap \
+  && git checkout $LDAP_AUTH_COMMIT
+
+RUN \
+  echo "Cloning and configuring njs ..." \
+  && cd /usr/src \
+  && hg clone --rev ${NJS_COMMIT} http://hg.nginx.org/njs \
+  && cd /usr/src/njs \
+  && ./configure \
+  && make njs \
+  && mv /usr/src/njs/build/njs /usr/sbin/njs \
+  && echo "njs v$(njs -v)"
+
+RUN \
+  echo "Cloning nginx-upstream-jvm-route ..." \
+  && cd /usr/src \
+  && git clone https://github.com/nulab/nginx-upstream-jvm-route.git \
+  && cd nginx-upstream-jvm-route \
+  && git checkout $NGINX_UPSTREAM_JVM_ROUTE_COMMIT
+
+RUN \
+  echo "Building nginx ..." \
+	&& cd /usr/src/nginx-$NGINX_VERSION \
+	&& patch -p0 < ../nginx-upstream-jvm-route/jvm_route.patch \
+	&& ./auto/configure $CONFIG \
+      --with-cc-opt="-I../boringssl/include"   \
+      --with-ld-opt="-L../boringssl/build/ssl  \
+                     -L../boringssl/build/crypto" \
+	&& make -j"$(getconf _NPROCESSORS_ONLN)"
+
+RUN \
+	cd /usr/src/nginx-$NGINX_VERSION \
+	&& make install \
+	&& rm -rf /etc/nginx/html/ \
+	&& mkdir /etc/nginx/conf.d/ \
+	&& strip /usr/sbin/nginx* \
+	&& strip /usr/lib/nginx/modules/*.so \
+	\
+	# https://tools.ietf.org/html/rfc7919
+	# https://github.com/mozilla/ssl-config-generator/blob/master/docs/ffdhe4096.txt
+	&& wget -q https://ssl-config.mozilla.org/ffdhe4096.txt -O /etc/ssl/dhparam.pem \
+	\
+	# Bring in gettext so we can get `envsubst`, then throw
+	# the rest away. To do this, we need to install `gettext`
+	# then move `envsubst` out of the way so `gettext` can
+	# be deleted completely, then move `envsubst` back.
+	&& apk add --no-cache --virtual .gettext gettext \
+	\
+	&& scanelf --needed --nobanner /usr/sbin/nginx /usr/sbin/njs /usr/lib/nginx/modules/*.so /usr/bin/envsubst \
+			| awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' \
+			| sort -u \
+			| xargs -r apk info --installed \
+			| sort -u > /tmp/runDeps.txt
+
+FROM alpine:3.17
+ARG NGINX_VERSION
+ARG NGINX_COMMIT
+
+ENV NGINX_VERSION $NGINX_VERSION
+ENV NGINX_COMMIT $NGINX_COMMIT
+
+COPY --from=base /tmp/runDeps.txt /tmp/runDeps.txt
+COPY --from=base /etc/nginx /etc/nginx
+COPY --from=base /usr/lib/nginx/modules/*.so /usr/lib/nginx/modules/
+COPY --from=base /usr/sbin/nginx /usr/sbin/
+COPY --from=base /usr/local/lib/perl5/site_perl /usr/local/lib/perl5/site_perl
+COPY --from=base /usr/bin/envsubst /usr/local/bin/envsubst
+COPY --from=base /etc/ssl/dhparam.pem /etc/ssl/dhparam.pem
+
+COPY --from=base /usr/sbin/njs /usr/sbin/njs
+
+RUN sed -i "s/999/99/" /etc/group
+# hadolint ignore=SC2046
+RUN \
+	addgroup --gid 999 -S nginx \
+	&& adduser --uid 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
+	&& apk add --no-cache --virtual .nginx-rundeps tzdata $(cat /tmp/runDeps.txt) \
+	&& rm /tmp/runDeps.txt \
+	&& ln -s /usr/lib/nginx/modules /etc/nginx/modules \
+	# forward request and error logs to docker log collector
+	&& mkdir /var/log/nginx \
+	&& touch /var/log/nginx/access.log /var/log/nginx/error.log \
+	&& ln -sf /dev/stdout /var/log/nginx/access.log \
+	&& ln -sf /dev/stderr /var/log/nginx/error.log
+
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY ssl_common.conf /etc/nginx/conf.d/ssl_common.conf
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY dnsmasq.conf /etc/dnsmasq.conf
 
+# show env
+RUN env | sort
+
+# njs version
+RUN njs -v
+
+# test the configuration
+RUN nginx -V; nginx -t
+
 EXPOSE 443 80 81
 
-CMD ["/usr/bin/supervisord"]
+STOPSIGNAL SIGTERM
+
+# prepare to switching to non-root - update file permissions
+RUN chown --verbose nginx:nginx \
+	/var/run/nginx.pid
+
+USER nginx
+CMD ["nginx", "-g", "daemon off;"]

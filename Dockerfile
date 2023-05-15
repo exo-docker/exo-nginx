@@ -120,8 +120,6 @@ RUN \
 		libldap \
 		openldap-dev \
 		patch \
-		dnsmasq \ 
-		supervisor \
 	&& apk add --no-cache --virtual .brotli-build-deps \
 		autoconf \
 		libtool \
@@ -135,6 +133,11 @@ RUN \
 		readline-dev
 
 WORKDIR /usr/src/
+
+RUN sed -i "s/999/99/" /etc/group
+RUN \
+	addgroup --gid 999 -S nginx \
+	&& adduser --uid 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
 RUN \
 	echo "Cloning nginx $NGINX_VERSION (rev $NGINX_COMMIT from 'quic' branch) ..." \
@@ -262,7 +265,7 @@ RUN sed -i "s/999/99/" /etc/group
 RUN \
 	addgroup --gid 999 -S nginx \
 	&& adduser --uid 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
-	&& apk add --no-cache --virtual .nginx-rundeps tzdata $(cat /tmp/runDeps.txt) \
+	&& apk add --no-cache --virtual .nginx-rundeps tzdata supervisor dnsmasq $(cat /tmp/runDeps.txt) \
 	&& rm /tmp/runDeps.txt \
 	&& ln -s /usr/lib/nginx/modules /etc/nginx/modules \
 	# forward request and error logs to docker log collector
@@ -294,5 +297,4 @@ STOPSIGNAL SIGTERM
 RUN chown --verbose nginx:nginx \
 	/var/run/nginx.pid
 
-USER nginx
-CMD ["/usr/bin/supervisord"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

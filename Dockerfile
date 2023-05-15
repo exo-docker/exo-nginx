@@ -295,4 +295,4 @@ RUN chown --verbose nginx:nginx \
 	/var/run/nginx.pid
 
 USER nginx
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/usr/bin/supervisord"]

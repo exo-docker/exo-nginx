@@ -265,7 +265,7 @@ RUN sed -i "s/999/99/" /etc/group
 RUN \
 	addgroup --gid 999 -S nginx \
 	&& adduser --uid 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
-	&& apk add --no-cache --virtual .nginx-rundeps tzdata supervisor dnsmasq $(cat /tmp/runDeps.txt) \
+	&& apk add --no-cache --virtual .nginx-rundeps tzdata supervisor dnsmasq curl $(cat /tmp/runDeps.txt) \
 	&& rm /tmp/runDeps.txt \
 	&& ln -s /usr/lib/nginx/modules /etc/nginx/modules \
 	# forward request and error logs to docker log collector

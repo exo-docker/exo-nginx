@@ -10,8 +10,8 @@ ARG NGX_BROTLI_COMMIT=6e975bcb015f62e1f303054897783355e2a877dc
 # https://github.com/google/boringssl
 ARG BORINGSSL_COMMIT=8ce0e1c14e48109773f1e94e5f8b020aa1e24dc5
 
-# https://github.com/kvspb/nginx-auth-ldap/releases
-ARG LDAP_AUTH_COMMIT=42d195d7a7575ebab1c369ad3fc5d78dc2c2669c
+# https://github.com/Ericbla/nginx-auth-ldap/releases
+ARG LDAP_AUTH_COMMIT=51fe79c4039549217f590598b42578d481cbd1eb
 
 # http://hg.nginx.org/njs
 ARG NJS_COMMIT=b33aae5e8dc6
@@ -85,7 +85,7 @@ ARG CONFIG="\
 		--add-dynamic-module=/usr/src/ngx_http_geoip2_module \
 	"
 
-FROM alpine:3.17 AS base
+FROM alpine:3.18 AS base
 
 ARG NGINX_VERSION
 ARG NGINX_COMMIT
@@ -188,7 +188,7 @@ RUN \
 RUN \
   echo "Cloning nginx-auth-ldap ..." \
   && cd /usr/src \
-  && git clone https://github.com/kvspb/nginx-auth-ldap.git \
+  && git clone https://github.com/Ericbla/nginx-auth-ldap.git \
   && cd nginx-auth-ldap \
   && git checkout $LDAP_AUTH_COMMIT
 
@@ -243,7 +243,7 @@ RUN \
 			| xargs -r apk info --installed \
 			| sort -u > /tmp/runDeps.txt
 
-FROM alpine:3.17
+FROM alpine:3.18
 ARG NGINX_VERSION
 ARG NGINX_COMMIT
 

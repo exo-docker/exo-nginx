@@ -129,6 +129,7 @@ RUN cd /src/nginx \
         --with-http_gunzip_module \
         --with-http_addition_module \
         --with-http_gzip_static_module \
+		--with-http_stub_status_module \
         --with-http_auth_request_module \
         --add-dynamic-module=/src/ngx_brotli \
         --add-dynamic-module=/src/headers-more-nginx-module \
@@ -209,5 +210,6 @@ STOPSIGNAL SIGTERM
 RUN chown --verbose nginx:nginx \
 	/var/run/nginx.pid
 
+USER nginx
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

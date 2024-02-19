@@ -1,13 +1,13 @@
 FROM ubuntu:20.04
 
-MAINTAINER eXo Platform <docker@exoplatform.com>
+LABEL maintainer="eXo Platform <docker@exoplatform.com>"
 
 ENV NPS_VERSION=1.13.35.2
 ENV NPS_FULL_VERSION=71e24c1c47113acb5924d8cb523d572b376e9dd0
 ENV NPS_DIR_NAME=incubator-pagespeed-ngx-${NPS_FULL_VERSION}
-ENV NGINX_VERSION=1.25.0
-ENV MORE_HEADERS_VERSION=0.34
-ENV SECURITY_HEADERS_VERSION=0.0.11
+ENV NGINX_VERSION=1.25.4
+ENV MORE_HEADERS_VERSION=0.35
+ENV SECURITY_HEADERS_VERSION=0.1.0
 ENV BUILD_DIR=/tmp/build
 
 RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 libpcre3-dev uuid-dev unzip wget curl libssl-dev dnsmasq supervisor libldap2-dev git && \

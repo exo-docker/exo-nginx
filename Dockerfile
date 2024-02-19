@@ -44,7 +44,11 @@ RUN apk add --no-cache \
 		openldap-dev \
 		patch 
 
-   
+RUN sed -i "s/999/99/" /etc/group
+RUN \
+	addgroup --gid 999 -S nginx \
+	&& adduser --uid 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
+
 RUN git clone --recursive --branch "$QUICTLS_VER" https://github.com/quictls/openssl /src/openssl 
 
 # ModSecurity
@@ -156,6 +160,7 @@ COPY dnsmasq.conf /etc/dnsmasq.conf
 RUN sed -i "s/999/99/" /etc/group
 RUN addgroup -g 999 -S nginx \
 	&& adduser -u 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
+
 RUN apk add --no-cache \
     ca-certificates \
     tzdata \
@@ -190,6 +195,19 @@ COPY --from=build /src/ModSecurity/modsecurity.conf-recommended /etc/nginx/modse
 
 LABEL maintainer="eXo Platform <docker@exoplatform.com>"
 
+# show env
+RUN env | sort
+
+# test the configuration
+RUN nginx -V; nginx -t
+
 EXPOSE 80 81 443 443/udp
+
+STOPSIGNAL SIGTERM
+
+# prepare to switching to non-root - update file permissions
+RUN chown --verbose nginx:nginx \
+	/var/run/nginx.pid
+
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

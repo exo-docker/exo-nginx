@@ -10,7 +10,8 @@ ARG NGX_HEADERS_MORE=v0.37rc1
 ARG NGX_NJS=0.8.3
 ARG NGX_MODSEC=v1.0.3
 ARG NGX_GEOIP2=3.4
-ARG LDAP_AUTH_COMMIT=51fe79c4039549217f590598b42578d481cbd1eb
+ARG NGX_SECURITY_HEADERS=0.1.0
+ARG NGX_LDAP_AUTH=v1.5
 
 WORKDIR /src
 
@@ -64,7 +65,8 @@ RUN (git clone --recursive --branch "$NGX_BROTLI" https://github.com/google/ngx_
         && git clone --recursive --branch "$NGX_NJS" https://github.com/nginx/njs /src/njs \
         && git clone --recursive --branch "$NGX_MODSEC" https://github.com/SpiderLabs/ModSecurity-nginx /src/ModSecurity-nginx \
         && git clone --recursive --branch "$NGX_GEOIP2" https://github.com/leev/ngx_http_geoip2_module /src/ngx_http_geoip2_module \
-        && git clone --recursive --branch "$LDAP_AUTH_COMMIT" https://github.com/Ericbla/nginx-auth-ldap /src/nginx-auth-ldap ) 
+        && git clone --recursive --branch "$NGX_SECURITY_HEADERS" https://github.com/GetPageSpeed/ngx_security_headers /src/ngx_security_headers \
+        && git clone --recursive --branch "$NGX_LDAP_AUTH" https://github.com/Ericbla/nginx-auth-ldap /src/nginx-auth-ldap ) 
 
 # Nginx
 
@@ -122,6 +124,7 @@ RUN cd /src/nginx \
         --with-http_auth_request_module \
         --add-dynamic-module=/src/ngx_brotli \
         --add-dynamic-module=/src/headers-more-nginx-module \
+        --add-dynamic-module=/src/ngx_security_headers \
         --add-dynamic-module=/src/njs/nginx \
         --add-dynamic-module=/src/ModSecurity-nginx \
 		--add-dynamic-module=/src/nginx-auth-ldap \
@@ -142,7 +145,11 @@ COPY --from=build /usr/lib/perl5/core_perl/perllocal.pod    /usr/lib/perl5/core_
 COPY --from=build /usr/local/modsecurity/lib/libmodsecurity.so.3    /usr/local/modsecurity/lib/libmodsecurity.so.3
 
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY ssl_common.conf /etc/nginx/conf.d/ssl_common.conf
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY dnsmasq.conf /etc/dnsmasq.conf
 
+RUN sed -i "s/999/99/" /etc/group
 RUN addgroup -g 999 -S nginx \
 	&& adduser -u 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 RUN apk add --no-cache \
@@ -160,14 +167,19 @@ RUN apk add --no-cache \
     perl \
     libcurl \
     geoip \
-    libmaxminddb-libs 
+    libmaxminddb-libs \
+	libldap \
+	supervisor \
+	dnsmasq \
+	curl
 RUN mkdir -p /var/log/nginx/ \
     && mkdir -p /etc/nginx/modsec \
     && touch /var/log/nginx/access.log \
     && touch /var/log/nginx/error.log \
     && ln -sf /dev/stdout /var/log/nginx/access.log \
 	&& ln -sf /dev/stderr /var/log/nginx/error.log \
-    && ln -s /usr/lib/nginx/modules /etc/nginx/modules
+    && ln -s /usr/lib/nginx/modules /etc/nginx/modules \
+	&& chown --verbose nginx:nginx -R /var/log/nginx
 
 COPY --from=build /src/ModSecurity/unicode.mapping  /etc/nginx/modsec/unicode.mapping
 COPY --from=build /src/ModSecurity/modsecurity.conf-recommended /etc/nginx/modsec/modsecurity.conf.example

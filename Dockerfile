@@ -1,4 +1,4 @@
-FROM alpine:latest as build
+FROM alpine:3.19 as build
 
 ARG BUILD
 
@@ -10,6 +10,7 @@ ARG NGX_HEADERS_MORE=v0.37rc1
 ARG NGX_NJS=0.8.3
 ARG NGX_MODSEC=v1.0.3
 ARG NGX_GEOIP2=3.4
+ARG LDAP_AUTH_COMMIT=51fe79c4039549217f590598b42578d481cbd1eb
 
 WORKDIR /src
 
@@ -36,7 +37,10 @@ RUN apk add --no-cache \
         lmdb-dev \
         geoip-dev \
         libmaxminddb-dev \
-        libfuzzy2-dev 
+        libfuzzy2-dev \
+	    libldap \
+		openldap-dev \
+		patch 
 
    
 RUN git clone --recursive --branch "$QUICTLS_VER" https://github.com/quictls/openssl /src/openssl 
@@ -59,7 +63,8 @@ RUN (git clone --recursive --branch "$NGX_BROTLI" https://github.com/google/ngx_
         && git clone --recursive --branch "$NGX_HEADERS_MORE" https://github.com/openresty/headers-more-nginx-module /src/headers-more-nginx-module \
         && git clone --recursive --branch "$NGX_NJS" https://github.com/nginx/njs /src/njs \
         && git clone --recursive --branch "$NGX_MODSEC" https://github.com/SpiderLabs/ModSecurity-nginx /src/ModSecurity-nginx \
-        && git clone --recursive --branch "$NGX_GEOIP2" https://github.com/leev/ngx_http_geoip2_module /src/ngx_http_geoip2_module) 
+        && git clone --recursive --branch "$NGX_GEOIP2" https://github.com/leev/ngx_http_geoip2_module /src/ngx_http_geoip2_module \
+        && git clone --recursive --branch "$LDAP_AUTH_COMMIT" https://github.com/Ericbla/nginx-auth-ldap /src/nginx-auth-ldap ) 
 
 # Nginx
 
@@ -119,6 +124,7 @@ RUN cd /src/nginx \
         --add-dynamic-module=/src/headers-more-nginx-module \
         --add-dynamic-module=/src/njs/nginx \
         --add-dynamic-module=/src/ModSecurity-nginx \
+		--add-dynamic-module=/src/nginx-auth-ldap \
         --add-dynamic-module=/src/ngx_http_geoip2_module \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install \
@@ -137,8 +143,8 @@ COPY --from=build /usr/local/modsecurity/lib/libmodsecurity.so.3    /usr/local/m
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
-RUN addgroup -S nginx \
-	&& adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
+RUN addgroup -g 999 -S nginx \
+	&& adduser -u 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 RUN apk add --no-cache \
     ca-certificates \
     tzdata \

@@ -131,8 +131,8 @@ RUN cd /src/nginx \
         --add-dynamic-module=/src/ngx_security_headers \
         --add-dynamic-module=/src/njs/nginx \
         --add-dynamic-module=/src/ModSecurity-nginx \
-		--add-dynamic-module=/src/nginx-auth-ldap \
         --add-dynamic-module=/src/ngx_http_geoip2_module \
+		--add-module=/src/nginx-auth-ldap \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install \
     && rm /src/nginx/*.patch \

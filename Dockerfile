@@ -12,6 +12,7 @@ ARG NGX_MODSEC=v1.0.3
 ARG NGX_GEOIP2=3.4
 ARG NGX_SECURITY_HEADERS=0.1.0
 ARG NGX_LDAP_AUTH=v1.5
+ARG NGX_UPSTREAM_JVM_ROUTE=master
 
 WORKDIR /src
 
@@ -66,6 +67,7 @@ RUN (git clone --recursive --branch "$NGX_BROTLI" https://github.com/google/ngx_
         && git clone --recursive --branch "$NGX_MODSEC" https://github.com/SpiderLabs/ModSecurity-nginx /src/ModSecurity-nginx \
         && git clone --recursive --branch "$NGX_GEOIP2" https://github.com/leev/ngx_http_geoip2_module /src/ngx_http_geoip2_module \
         && git clone --recursive --branch "$NGX_SECURITY_HEADERS" https://github.com/GetPageSpeed/ngx_security_headers /src/ngx_security_headers \
+        && git clone --recursive --branch "$NGX_UPSTREAM_JVM_ROUTE" https://github.com/nulab/nginx-upstream-jvm-route /src/nginx-upstream-jvm-route \
         && git clone --recursive --branch "$NGX_LDAP_AUTH" https://github.com/Ericbla/nginx-auth-ldap /src/nginx-auth-ldap ) 
 
 # Nginx
@@ -77,7 +79,9 @@ RUN (wget https://nginx.org/download/nginx-"$NGX_MAINLINE_VER".tar.gz -O - | tar
         && sed -i "s|Server: nginx|Server: NGINX-QuicTLS with ModSec|g" /src/nginx/src/http/ngx_http_header_filter_module.c \
         && sed -i "s|<hr><center>nginx</center>|<hr><center>NGINX-QuicTLS with ModSec</center>|g" /src/nginx/src/http/ngx_http_special_response.c \
         && cd /src/nginx \
-        && patch -p1 < dynamic_tls_records.patch) 
+        && patch -p1 < dynamic_tls_records.patch \
+        && patch -p0 < /src/nginx-upstream-jvm-route/jvm_route.patch)
+
 RUN cd /src/nginx \
     && ./configure \
         --build=${BUILD} \

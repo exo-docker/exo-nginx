@@ -10,7 +10,9 @@ ENV MORE_HEADERS_VERSION=0.35
 ENV SECURITY_HEADERS_VERSION=0.1.0
 ENV BUILD_DIR=/tmp/build
 
-RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 libpcre3-dev uuid-dev unzip wget curl libssl-dev dnsmasq supervisor libldap2-dev git && \
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 libpcre3-dev uuid-dev unzip wget curl libssl-dev dnsmasq supervisor libldap2-dev git libgd-dev && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir ${BUILD_DIR} \
@@ -67,11 +69,14 @@ RUN  patch -p0 < ../nginx-upstream-jvm-route/jvm_route.patch \
         --with-http_auth_request_module \
         --with-http_realip_module \
         --with-http_v2_module \
+        --with-http_image_filter_module=dynamic  \
         --with-stream \
         --with-stream_ssl_module \
         --with-http_stub_status_module \
     && make -j 4 install \
     && rm -rf ${BUILD_DIR}
+
+RUN ln -s /usr/lib/nginx/modules /etc/nginx/modules
 
 WORKDIR /
 

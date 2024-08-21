@@ -1,11 +1,8 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 
 LABEL maintainer="eXo Platform <docker@exoplatform.com>"
 
-ENV NPS_VERSION=1.13.35.2
-ENV NPS_COMMIT=71e24c1c47113acb5924d8cb523d572b376e9dd0
-ENV NPS_DIR_NAME=incubator-pagespeed-ngx-${NPS_COMMIT}
-ENV NGINX_VERSION=1.25.5
+ENV NGINX_VERSION=1.26.2
 ENV MORE_HEADERS_VERSION=0.37
 ENV SECURITY_HEADERS_VERSION=0.1.0
 ENV BUILD_DIR=/tmp/build
@@ -16,18 +13,12 @@ RUN apt-get update && apt-get install -y build-essential zlib1g-dev libpcre3 lib
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir ${BUILD_DIR} \
-    && cd ${BUILD_DIR} && wget -O nps.zip https://github.com/apache/incubator-pagespeed-ngx/archive/${NPS_COMMIT}.zip \
-    && unzip nps.zip \
-    && cd ${NPS_DIR_NAME} \
     && cd ${BUILD_DIR} \
     && wget https://github.com/openresty/headers-more-nginx-module/archive/v${MORE_HEADERS_VERSION}.tar.gz \
     && tar -xzf v${MORE_HEADERS_VERSION}.tar.gz \
     && cd ${BUILD_DIR} && git clone https://github.com/kvspb/nginx-auth-ldap.git && cd nginx-auth-ldap && git checkout 42d195d7a7575ebab1c369ad3fc5d78dc2c2669c \
     && cd ${BUILD_DIR} && wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz \
-    && tar -xzf nginx-${NGINX_VERSION}.tar.gz \
-    && cd ${BUILD_DIR}/${NPS_DIR_NAME} \
-    && wget -O psol.tar.gz https://dl.google.com/dl/page-speed/psol/${NPS_VERSION}-x64.tar.gz \
-    && tar -xzvf psol.tar.gz
+    && tar -xzf nginx-${NGINX_VERSION}.tar.gz
 
 RUN cd ${BUILD_DIR} && wget -O nginx-upstream-jvm-route.zip https://github.com/nulab/nginx-upstream-jvm-route/archive/c4c92e797c0a06840017bf5c881378dabf6490a5.zip \
     && unzip -d nginx-upstream-jvm-route nginx-upstream-jvm-route.zip \
@@ -57,8 +48,7 @@ RUN  patch -p0 < ../nginx-upstream-jvm-route/jvm_route.patch \
         --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
         --user=nginx --group=nginx \
         --add-module=${BUILD_DIR}/headers-more-nginx-module-${MORE_HEADERS_VERSION} \
-        --add-module=${BUILD_DIR}/${NPS_DIR_NAME} \
-        --add-module=${BUILD_DIR}/nginx-auth-ldap ${PS_NGX_EXTRA_FLAGS} \
+        --add-module=${BUILD_DIR}/nginx-auth-ldap \
         --add-module=${BUILD_DIR}/nginx-upstream-jvm-route \
         --add-module=${BUILD_DIR}/ngx_security_headers-${SECURITY_HEADERS_VERSION} \
         --with-file-aio \
@@ -79,6 +69,8 @@ RUN  patch -p0 < ../nginx-upstream-jvm-route/jvm_route.patch \
 RUN ln -s /usr/lib/nginx/modules /etc/nginx/modules
 
 WORKDIR /
+
+RUN usermod -u 2005 dnsmasq
 
 RUN mkdir -p /var/log/nginx /var/cache/nginx/ \
     && ln -s /dev/stdout /var/log/nginx/access.log \

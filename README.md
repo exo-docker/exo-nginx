@@ -10,7 +10,6 @@ This image can be use in the same way the official [nginx image](https://hub.doc
 
 * [nginx-sticky-module-ng](https://github.com/Refinitiv/nginx-sticky-module-ng.git)
 * http_ssl_module
-* ngx_pagespeed-release
 * ngx_headers_more
 * http_addition_module
 * http_auth_request_module

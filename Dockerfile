@@ -1,8 +1,8 @@
-FROM alpine:3.19 as build
+FROM alpine:3.20 as build
 
 ARG BUILD
 
-ARG NGX_MAINLINE_VER=1.25.5
+ARG NGX_MAINLINE_VER=1.26.2
 ARG QUICTLS_VER=openssl-3.1.5+quic
 ARG MODSEC_VER=v3.0.12
 ARG NGX_BROTLI=master

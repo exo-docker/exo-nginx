@@ -1,4 +1,4 @@
-FROM alpine:3.20 as build
+FROM alpine:3.19 as build
 
 ARG BUILD
 
@@ -146,7 +146,7 @@ RUN cd /src/nginx \
     && strip -s /usr/sbin/nginx \
     && strip -s /usr/lib/nginx/modules/*.so
 
-FROM python:alpine
+FROM python:alpine3.19
 
 COPY --from=build /etc/nginx /etc/nginx 
 COPY --from=build /usr/sbin/nginx   /usr/sbin/nginx

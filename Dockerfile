@@ -1,17 +1,17 @@
-FROM alpine:3.19 as build
+FROM alpine:3.20 AS build
 
 ARG BUILD
 
 ARG NGX_MAINLINE_VER=1.26.2
-ARG QUICTLS_VER=openssl-3.1.5+quic
-ARG MODSEC_VER=v3.0.12
+ARG QUICTLS_VER=openssl-3.1.7+quic
+ARG MODSEC_VER=v3.0.13
 ARG NGX_BROTLI=master
-ARG NGX_HEADERS_MORE=v0.37rc1
-ARG NGX_NJS=0.8.3
+ARG NGX_HEADERS_MORE=v0.37
+ARG NGX_NJS=0.8.8
 ARG NGX_MODSEC=v1.0.3
 ARG NGX_GEOIP2=3.4
-ARG NGX_SECURITY_HEADERS=0.1.0
-ARG NGX_LDAP_AUTH=v1.5
+ARG NGX_SECURITY_HEADERS=0.1.1
+ARG NGX_LDAP_AUTH=v1.7
 ARG NGX_UPSTREAM_JVM_ROUTE=master
 
 WORKDIR /src
@@ -50,11 +50,11 @@ RUN \
     addgroup --gid 999 -S nginx \
     && adduser --uid 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
-RUN git clone --recursive --branch "$QUICTLS_VER" https://github.com/quictls/openssl /src/openssl 
+RUN git clone --recursive --depth 1 --branch "$QUICTLS_VER" https://github.com/quictls/openssl /src/openssl 
 
 # ModSecurity
 
-RUN (git clone --recursive --branch "$MODSEC_VER" https://github.com/SpiderLabs/ModSecurity /src/ModSecurity \
+RUN (git clone --recursive --depth 1 --branch "$MODSEC_VER" https://github.com/SpiderLabs/ModSecurity /src/ModSecurity \
     && sed -i "s|SecRuleEngine.*|SecRuleEngine On|g" /src/ModSecurity/modsecurity.conf-recommended \
     && sed -i "s|unicode.mapping|/etc/nginx/modsec/unicode.mapping|g" /src/ModSecurity/modsecurity.conf-recommended \
     && cd /src/ModSecurity \
@@ -66,14 +66,14 @@ RUN (git clone --recursive --branch "$MODSEC_VER" https://github.com/SpiderLabs/
 
 # Modules
 
-RUN (git clone --recursive --branch "$NGX_BROTLI" https://github.com/google/ngx_brotli /src/ngx_brotli \
-    && git clone --recursive --branch "$NGX_HEADERS_MORE" https://github.com/openresty/headers-more-nginx-module /src/headers-more-nginx-module \
-    && git clone --recursive --branch "$NGX_NJS" https://github.com/nginx/njs /src/njs \
-    && git clone --recursive --branch "$NGX_MODSEC" https://github.com/SpiderLabs/ModSecurity-nginx /src/ModSecurity-nginx \
-    && git clone --recursive --branch "$NGX_GEOIP2" https://github.com/leev/ngx_http_geoip2_module /src/ngx_http_geoip2_module \
-    && git clone --recursive --branch "$NGX_SECURITY_HEADERS" https://github.com/GetPageSpeed/ngx_security_headers /src/ngx_security_headers \
-    && git clone --recursive --branch "$NGX_UPSTREAM_JVM_ROUTE" https://github.com/nulab/nginx-upstream-jvm-route /src/nginx-upstream-jvm-route \
-    && git clone --recursive --branch "$NGX_LDAP_AUTH" https://github.com/Ericbla/nginx-auth-ldap /src/nginx-auth-ldap ) 
+RUN (git clone --recursive --depth 1 --branch "$NGX_BROTLI" https://github.com/google/ngx_brotli /src/ngx_brotli \
+    && git clone --recursive --depth 1 --branch "$NGX_HEADERS_MORE" https://github.com/openresty/headers-more-nginx-module /src/headers-more-nginx-module \
+    && git clone --recursive --depth 1 --branch "$NGX_NJS" https://github.com/nginx/njs /src/njs \
+    && git clone --recursive --depth 1 --branch "$NGX_MODSEC" https://github.com/SpiderLabs/ModSecurity-nginx /src/ModSecurity-nginx \
+    && git clone --recursive --depth 1 --branch "$NGX_GEOIP2" https://github.com/leev/ngx_http_geoip2_module /src/ngx_http_geoip2_module \
+    && git clone --recursive --depth 1 --branch "$NGX_SECURITY_HEADERS" https://github.com/GetPageSpeed/ngx_security_headers /src/ngx_security_headers \
+    && git clone --recursive --depth 1 --branch "$NGX_UPSTREAM_JVM_ROUTE" https://github.com/nulab/nginx-upstream-jvm-route /src/nginx-upstream-jvm-route \
+    && git clone --recursive --depth 1 --branch "$NGX_LDAP_AUTH" https://github.com/Ericbla/nginx-auth-ldap /src/nginx-auth-ldap )
 
 # Nginx
 
@@ -135,18 +135,18 @@ RUN cd /src/nginx \
     --with-http_auth_request_module \
     --add-dynamic-module=/src/ngx_brotli \
     --add-dynamic-module=/src/headers-more-nginx-module \
-    --add-dynamic-module=/src/ngx_security_headers \
     --add-dynamic-module=/src/njs/nginx \
     --add-dynamic-module=/src/ModSecurity-nginx \
     --add-dynamic-module=/src/ngx_http_geoip2_module \
     --add-module=/src/nginx-auth-ldap \
+    --add-module=/src/ngx_security_headers \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install \
     && rm /src/nginx/*.patch \
     && strip -s /usr/sbin/nginx \
     && strip -s /usr/lib/nginx/modules/*.so
 
-FROM python:alpine3.19
+FROM python:alpine3.20
 
 COPY --from=build /etc/nginx /etc/nginx 
 COPY --from=build /usr/sbin/nginx   /usr/sbin/nginx

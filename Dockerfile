@@ -10,7 +10,7 @@ ARG NGX_NJS=0.8.9
 ARG NGX_MODSEC=v1.0.3
 ARG NGX_GEOIP2=3.4
 ARG NGX_SECURITY_HEADERS=0.1.1
-ARG NGX_LDAP_AUTH=v1.7
+ARG NGX_LDAP_AUTH=v1.8
 ARG NGX_UPSTREAM_JVM_ROUTE=master
 
 WORKDIR /src
@@ -70,7 +70,7 @@ RUN (git clone --recursive --depth 1 --branch "$NGX_BROTLI" https://github.com/g
     && git clone --recursive --depth 1 --branch "$NGX_GEOIP2" https://github.com/leev/ngx_http_geoip2_module /src/ngx_http_geoip2_module \
     && git clone --recursive --depth 1 --branch "$NGX_SECURITY_HEADERS" https://github.com/GetPageSpeed/ngx_security_headers /src/ngx_security_headers \
     && git clone --recursive --depth 1 --branch "$NGX_UPSTREAM_JVM_ROUTE" https://github.com/nulab/nginx-upstream-jvm-route /src/nginx-upstream-jvm-route \
-    && git clone --recursive --depth 1 --branch "$NGX_LDAP_AUTH" https://github.com/Ericbla/nginx-auth-ldap /src/nginx-auth-ldap )
+    && git clone --recursive --depth 1 --branch "$NGX_LDAP_AUTH" https://github.com/hbenali/nginx-auth-ldap /src/nginx-auth-ldap )
 
 # Nginx
 RUN (wget https://nginx.org/download/nginx-"$NGX_MAINLINE_VER".tar.gz -O - | tar xzC /src \

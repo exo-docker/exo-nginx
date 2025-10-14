@@ -1,16 +1,16 @@
-FROM alpine:3.20 AS build
+FROM alpine:3.22 AS build
 
 ARG BUILD
-ARG NGX_MAINLINE_VER=1.26.3
-ARG MODSEC_VER=v3.0.13
-ARG OPENSSL_VER=openssl-3.4.0
+ARG NGX_MAINLINE_VER=1.28.0
+ARG MODSEC_VER=v3.0.14
+ARG OPENSSL_VER=openssl-3.5.1
 ARG NGX_BROTLI=master
-ARG NGX_HEADERS_MORE=v0.38
-ARG NGX_NJS=0.8.9
-ARG NGX_MODSEC=v1.0.3
+ARG NGX_HEADERS_MORE=v0.39
+ARG NGX_NJS=0.9.1
+ARG NGX_MODSEC=v1.0.4
 ARG NGX_GEOIP2=3.4
-ARG NGX_SECURITY_HEADERS=0.1.1
-ARG NGX_LDAP_AUTH=v1.7
+ARG NGX_SECURITY_HEADERS=0.1.2
+ARG NGX_LDAP=v1.8
 ARG NGX_UPSTREAM_JVM_ROUTE=master
 
 WORKDIR /src
@@ -69,19 +69,19 @@ RUN (git clone --recursive --depth 1 --branch "$NGX_BROTLI" https://github.com/g
     && git clone --recursive --depth 1 --branch "$NGX_MODSEC" https://github.com/SpiderLabs/ModSecurity-nginx /src/ModSecurity-nginx \
     && git clone --recursive --depth 1 --branch "$NGX_GEOIP2" https://github.com/leev/ngx_http_geoip2_module /src/ngx_http_geoip2_module \
     && git clone --recursive --depth 1 --branch "$NGX_SECURITY_HEADERS" https://github.com/GetPageSpeed/ngx_security_headers /src/ngx_security_headers \
-    && git clone --recursive --depth 1 --branch "$NGX_UPSTREAM_JVM_ROUTE" https://github.com/nulab/nginx-upstream-jvm-route /src/nginx-upstream-jvm-route \
-    && git clone --recursive --depth 1 --branch "$NGX_LDAP_AUTH" https://github.com/Ericbla/nginx-auth-ldap /src/nginx-auth-ldap )
+    && git clone --recursive --depth 1 --branch "$NGX_UPSTREAM_JVM_ROUTE" https://github.com/hbenali/nginx-upstream-jvm-route /src/nginx-upstream-jvm-route \
+    && git clone --recursive --depth 1 --branch "$NGX_LDAP" https://github.com/Ericbla/nginx-auth-ldap /src/nginx-auth-ldap )
 
 # Nginx
 RUN (wget https://nginx.org/download/nginx-"$NGX_MAINLINE_VER".tar.gz -O - | tar xzC /src \
     && mv /src/nginx-"$NGX_MAINLINE_VER" /src/nginx \
-    && wget https://raw.githubusercontent.com/nginx-modules/ngx_http_tls_dyn_size/master/nginx__dynamic_tls_records_1.25.1%2B.patch -O /src/nginx/dynamic_tls_records.patch \
+    && wget https://raw.githubusercontent.com/nginx-modules/ngx_http_tls_dyn_size/master/nginx__dynamic_tls_records_1.27.5%2B.patch -O /src/nginx/dynamic_tls_records.patch \
     && sed -i "s|nginx/|NGINX-OpenSSL with ModSec/|g" /src/nginx/src/core/nginx.h \
     && sed -i "s|Server: nginx|Server: NGINX-OpenSSL with ModSec|g" /src/nginx/src/http/ngx_http_header_filter_module.c \
     && sed -i "s|<hr><center>nginx</center>|<hr><center>NGINX-OpenSSL with ModSec</center>|g" /src/nginx/src/http/ngx_http_special_response.c \
     && cd /src/nginx \
     && patch -p1 < dynamic_tls_records.patch \
-    && patch -p0 < /src/nginx-upstream-jvm-route/jvm_route.patch)
+    && patch -p1 < /src/nginx-upstream-jvm-route/jvm_route.patch)
 
 RUN cd /src/nginx \
     && ./configure \
@@ -149,7 +149,7 @@ RUN cd /src/nginx \
     && strip -s /usr/sbin/nginx \
     && strip -s /usr/lib/nginx/modules/*.so
 
-FROM python:alpine3.20
+FROM python:alpine3.22
 
 COPY --from=build /etc/nginx /etc/nginx
 COPY --from=build /usr/sbin/nginx   /usr/sbin/nginx

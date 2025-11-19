@@ -35,7 +35,6 @@ The following modules are included and activated in this build:
 
 - `ngx_headers_more`: Allows modification of HTTP headers.
 - `ngx_brotli`: Provides Brotli compression.
-- `ModSecurity-nginx`: Integrates ModSecurity for enhanced security.
 - `ngx_http_geoip2_module`: Adds GeoIP2-based client location.
 - `ngx_security_headers`: Enforces security-related headers.
 - `nginx-auth-ldap`: Adds LDAP-based authentication.

@@ -2,12 +2,10 @@ FROM alpine:3.22 AS build
 
 ARG BUILD
 ARG NGX_MAINLINE_VER=1.28.0
-ARG MODSEC_VER=v3.0.14
 ARG OPENSSL_VER=openssl-3.5.1
 ARG NGX_BROTLI=master
 ARG NGX_HEADERS_MORE=v0.39
 ARG NGX_NJS=0.9.1
-ARG NGX_MODSEC=v1.0.4
 ARG NGX_GEOIP2=3.4
 ARG NGX_SECURITY_HEADERS=0.1.2
 ARG NGX_LDAP=v1.8
@@ -44,29 +42,16 @@ RUN apk add --no-cache \
     patch 
 
 RUN sed -i "s/999/99/" /etc/group
-RUN \
-    addgroup --gid 999 -S nginx \
+RUN addgroup --gid 999 -S nginx \
     && adduser --uid 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
 # Clone and build OpenSSL
 RUN git clone --recursive --branch ${OPENSSL_VER} --depth 1 https://github.com/openssl/openssl /src/openssl
 
-# ModSecurity
-RUN (git clone --recursive --depth 1 --branch "$MODSEC_VER" https://github.com/SpiderLabs/ModSecurity /src/ModSecurity \
-    && sed -i "s|SecRuleEngine.*|SecRuleEngine On|g" /src/ModSecurity/modsecurity.conf-recommended \
-    && sed -i "s|unicode.mapping|/etc/nginx/modsec/unicode.mapping|g" /src/ModSecurity/modsecurity.conf-recommended \
-    && cd /src/ModSecurity \
-    && /src/ModSecurity/build.sh \
-    && /src/ModSecurity/configure --with-pcre2 --with-lmdb \
-    && make -j "$(nproc)" \
-    && make -j "$(nproc)" install \
-    && strip -s /usr/local/modsecurity/lib/libmodsecurity.so.3) 
-
 # Modules
 RUN (git clone --recursive --depth 1 --branch "$NGX_BROTLI" https://github.com/google/ngx_brotli /src/ngx_brotli \
     && git clone --recursive --depth 1 --branch "$NGX_HEADERS_MORE" https://github.com/openresty/headers-more-nginx-module /src/headers-more-nginx-module \
     && git clone --recursive --depth 1 --branch "$NGX_NJS" https://github.com/nginx/njs /src/njs \
-    && git clone --recursive --depth 1 --branch "$NGX_MODSEC" https://github.com/SpiderLabs/ModSecurity-nginx /src/ModSecurity-nginx \
     && git clone --recursive --depth 1 --branch "$NGX_GEOIP2" https://github.com/leev/ngx_http_geoip2_module /src/ngx_http_geoip2_module \
     && git clone --recursive --depth 1 --branch "$NGX_SECURITY_HEADERS" https://github.com/GetPageSpeed/ngx_security_headers /src/ngx_security_headers \
     && git clone --recursive --depth 1 --branch "$NGX_UPSTREAM_JVM_ROUTE" https://github.com/hbenali/nginx-upstream-jvm-route /src/nginx-upstream-jvm-route \
@@ -76,9 +61,6 @@ RUN (git clone --recursive --depth 1 --branch "$NGX_BROTLI" https://github.com/g
 RUN (wget https://nginx.org/download/nginx-"$NGX_MAINLINE_VER".tar.gz -O - | tar xzC /src \
     && mv /src/nginx-"$NGX_MAINLINE_VER" /src/nginx \
     && wget https://raw.githubusercontent.com/nginx-modules/ngx_http_tls_dyn_size/master/nginx__dynamic_tls_records_1.27.5%2B.patch -O /src/nginx/dynamic_tls_records.patch \
-    && sed -i "s|nginx/|NGINX-OpenSSL with ModSec/|g" /src/nginx/src/core/nginx.h \
-    && sed -i "s|Server: nginx|Server: NGINX-OpenSSL with ModSec|g" /src/nginx/src/http/ngx_http_header_filter_module.c \
-    && sed -i "s|<hr><center>nginx</center>|<hr><center>NGINX-OpenSSL with ModSec</center>|g" /src/nginx/src/http/ngx_http_special_response.c \
     && cd /src/nginx \
     && patch -p1 < dynamic_tls_records.patch \
     && patch -p1 < /src/nginx-upstream-jvm-route/jvm_route.patch)
@@ -139,7 +121,6 @@ RUN cd /src/nginx \
     --add-dynamic-module=/src/ngx_brotli \
     --add-dynamic-module=/src/headers-more-nginx-module \
     --add-dynamic-module=/src/njs/nginx \
-    --add-dynamic-module=/src/ModSecurity-nginx \
     --add-dynamic-module=/src/ngx_http_geoip2_module \
     --add-module=/src/nginx-auth-ldap \
     --add-module=/src/ngx_security_headers \
@@ -155,8 +136,7 @@ COPY --from=build /etc/nginx /etc/nginx
 COPY --from=build /usr/sbin/nginx   /usr/sbin/nginx
 COPY --from=build /usr/lib/nginx /usr/lib/nginx
 COPY --from=build /usr/local/lib/perl5  /usr/local/lib/perl5
-COPY --from=build /usr/lib/perl5/core_perl/perllocal.pod    /usr/lib/perl5/core_perl/perllocal.pod
-COPY --from=build /usr/local/modsecurity/lib/libmodsecurity.so.3    /usr/local/modsecurity/lib/libmodsecurity.so.3
+COPY --from=build /usr/lib/perl5/core_perl/perllocal.pod /usr/lib/perl5/core_perl/perllocal.pod
 
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
@@ -189,16 +169,12 @@ RUN apk add --no-cache \
     curl
 
 RUN mkdir -p /var/log/nginx/ \
-    && mkdir -p /etc/nginx/modsec \
     && touch /var/log/nginx/access.log \
     && touch /var/log/nginx/error.log \
     && ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log \
     && ln -s /usr/lib/nginx/modules /etc/nginx/modules \
     && chown --verbose nginx:nginx -R /var/log/nginx
-
-COPY --from=build /src/ModSecurity/unicode.mapping  /etc/nginx/modsec/unicode.mapping
-COPY --from=build /src/ModSecurity/modsecurity.conf-recommended /etc/nginx/modsec/modsecurity.conf.example
 
 LABEL maintainer="eXo Platform <docker@exoplatform.com>"
 
@@ -213,7 +189,6 @@ EXPOSE 80 81 443
 STOPSIGNAL SIGTERM
 
 # prepare to switch to non-root - update file permissions
-RUN chown --verbose nginx:nginx \
-    /var/run/nginx.pid
+RUN chown --verbose nginx:nginx /var/run/nginx.pid
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

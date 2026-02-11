@@ -184,9 +184,14 @@ RUN apk add --no-cache \
     libmaxminddb-libs \
     libldap \
     gd-dev  \
-    supervisor \
     dnsmasq \
     curl
+
+RUN pip install --no-cache-dir \
+    "setuptools<81" \
+    "supervisor==4.2.5"
+
+ENV PYTHONWARNINGS="ignore::UserWarning"
 
 RUN mkdir -p /var/log/nginx/ \
     && mkdir -p /etc/nginx/modsec \
@@ -216,4 +221,5 @@ STOPSIGNAL SIGTERM
 RUN chown --verbose nginx:nginx \
     /var/run/nginx.pid
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["/usr/local/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

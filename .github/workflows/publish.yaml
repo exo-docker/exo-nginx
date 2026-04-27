@@ -4,9 +4,9 @@ on:
   push:
     tags:
       - '*'
-    branches: [ master ]
+    branches: [ 1.28.x ]
 env:
-  BRANCH_BUILD_TAGS: "latest"
+  BRANCH_BUILD_TAGS: "1.28_latest"
 jobs:
   parse-docker-build-env:
     name: 'Parse Docker Build Environment'

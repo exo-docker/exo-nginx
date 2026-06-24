@@ -1,6 +1,6 @@
+# syntax=docker/dockerfile:1
 FROM alpine:3.22 AS build
 
-ARG BUILD
 ARG NGX_MAINLINE_VER=1.30.3
 ARG MODSEC_VER=v3.0.15
 ARG OPENSSL_VER=openssl-4.0.1
@@ -15,8 +15,8 @@ ARG NGX_UPSTREAM_JVM_ROUTE=master
 
 WORKDIR /src
 
-# Install the required packages
-RUN apk add --no-cache \
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add --no-cache \
     ca-certificates \
     build-base \
     patch \
@@ -38,21 +38,18 @@ RUN apk add --no-cache \
     geoip-dev \
     libmaxminddb-dev \
     libfuzzy2-dev \
-    gd-dev  \
+    gd-dev \
     libldap \
-    openldap-dev \
-    patch 
+    openldap-dev
 
-RUN sed -i "s/999/99/" /etc/group
-RUN \
-    addgroup --gid 999 -S nginx \
+RUN sed -i "s/999/99/" /etc/group \
+    && addgroup --gid 999 -S nginx \
     && adduser --uid 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
-# Clone and build OpenSSL
 RUN git clone --recursive --branch ${OPENSSL_VER} --depth 1 https://github.com/openssl/openssl /src/openssl
 
 # ModSecurity
-RUN (git clone --recursive --depth 1 --branch "$MODSEC_VER" https://github.com/SpiderLabs/ModSecurity /src/ModSecurity \
+RUN git clone --recursive --depth 1 --branch "$MODSEC_VER" https://github.com/SpiderLabs/ModSecurity /src/ModSecurity \
     && sed -i "s|SecRuleEngine.*|SecRuleEngine On|g" /src/ModSecurity/modsecurity.conf-recommended \
     && sed -i "s|unicode.mapping|/etc/nginx/modsec/unicode.mapping|g" /src/ModSecurity/modsecurity.conf-recommended \
     && cd /src/ModSecurity \
@@ -60,20 +57,21 @@ RUN (git clone --recursive --depth 1 --branch "$MODSEC_VER" https://github.com/S
     && /src/ModSecurity/configure --with-pcre2 --with-lmdb \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install \
-    && strip -s /usr/local/modsecurity/lib/libmodsecurity.so.3) 
+    && strip -s /usr/local/modsecurity/lib/libmodsecurity.so.3
 
-# Modules
-RUN (git clone --recursive --depth 1 --branch "$NGX_BROTLI" https://github.com/google/ngx_brotli /src/ngx_brotli \
-    && git clone --recursive --depth 1 --branch "$NGX_HEADERS_MORE" https://github.com/openresty/headers-more-nginx-module /src/headers-more-nginx-module \
-    && git clone --recursive --depth 1 --branch "$NGX_NJS" https://github.com/nginx/njs /src/njs \
-    && git clone --recursive --depth 1 --branch "$NGX_MODSEC" https://github.com/SpiderLabs/ModSecurity-nginx /src/ModSecurity-nginx \
-    && git clone --recursive --depth 1 --branch "$NGX_GEOIP2" https://github.com/leev/ngx_http_geoip2_module /src/ngx_http_geoip2_module \
-    && git clone --recursive --depth 1 --branch "$NGX_SECURITY_HEADERS" https://github.com/GetPageSpeed/ngx_security_headers /src/ngx_security_headers \
-    && git clone --recursive --depth 1 --branch "$NGX_UPSTREAM_JVM_ROUTE" https://github.com/hbenali/nginx-upstream-jvm-route /src/nginx-upstream-jvm-route \
-    && git clone --recursive --depth 1 --branch "$NGX_LDAP" https://github.com/Ericbla/nginx-auth-ldap /src/nginx-auth-ldap )
+# Clone all modules in parallel
+RUN git clone --recursive --depth 1 --branch "$NGX_BROTLI"             https://github.com/google/ngx_brotli                    /src/ngx_brotli & \
+    git clone --recursive --depth 1 --branch "$NGX_HEADERS_MORE"       https://github.com/openresty/headers-more-nginx-module  /src/headers-more-nginx-module & \
+    git clone --recursive --depth 1 --branch "$NGX_NJS"                https://github.com/nginx/njs                             /src/njs & \
+    git clone --recursive --depth 1 --branch "$NGX_MODSEC"             https://github.com/SpiderLabs/ModSecurity-nginx          /src/ModSecurity-nginx & \
+    git clone --recursive --depth 1 --branch "$NGX_GEOIP2"             https://github.com/leev/ngx_http_geoip2_module           /src/ngx_http_geoip2_module & \
+    git clone --recursive --depth 1 --branch "$NGX_SECURITY_HEADERS"   https://github.com/GetPageSpeed/ngx_security_headers     /src/ngx_security_headers & \
+    git clone --recursive --depth 1 --branch "$NGX_UPSTREAM_JVM_ROUTE" https://github.com/hbenali/nginx-upstream-jvm-route      /src/nginx-upstream-jvm-route & \
+    git clone --recursive --depth 1 --branch "$NGX_LDAP"               https://github.com/Ericbla/nginx-auth-ldap               /src/nginx-auth-ldap & \
+    wait
 
-# Nginx
-RUN (wget https://nginx.org/download/nginx-"$NGX_MAINLINE_VER".tar.gz -O - | tar xzC /src \
+# Download and prepare nginx source
+RUN wget https://nginx.org/download/nginx-"$NGX_MAINLINE_VER".tar.gz -O - | tar xzC /src \
     && mv /src/nginx-"$NGX_MAINLINE_VER" /src/nginx \
     && wget https://raw.githubusercontent.com/nginx-modules/ngx_http_tls_dyn_size/master/nginx__dynamic_tls_records_1.29.2%2B.patch -O /src/nginx/dynamic_tls_records.patch \
     && sed -i "s|nginx/|NGINX-OpenSSL with ModSec/|g" /src/nginx/src/core/nginx.h \
@@ -81,8 +79,10 @@ RUN (wget https://nginx.org/download/nginx-"$NGX_MAINLINE_VER".tar.gz -O - | tar
     && sed -i "s|<hr><center>nginx</center>|<hr><center>NGINX-OpenSSL with ModSec</center>|g" /src/nginx/src/http/ngx_http_special_response.c \
     && cd /src/nginx \
     && patch -p1 < dynamic_tls_records.patch \
-    && patch -p1 < /src/nginx-upstream-jvm-route/jvm_route.patch)
+    && patch -p1 < /src/nginx-upstream-jvm-route/jvm_route.patch
 
+# Configure and build nginx
+ARG BUILD
 RUN cd /src/nginx \
     && ./configure \
     --build=${BUILD} \
@@ -112,7 +112,7 @@ RUN cd /src/nginx \
     --with-openssl-opt="no-ssl3 no-ssl3-method no-weak-ssl-ciphers" \
     --with-mail=dynamic \
     --with-mail_ssl_module \
-    --with-http_image_filter_module=dynamic  \
+    --with-http_image_filter_module=dynamic \
     --with-stream=dynamic \
     --with-stream_ssl_module \
     --with-stream_ssl_preread_module \
@@ -149,24 +149,22 @@ RUN cd /src/nginx \
     && strip -s /usr/sbin/nginx \
     && strip -s /usr/lib/nginx/modules/*.so
 
+
 FROM python:alpine3.22
 
 COPY --from=build /etc/nginx /etc/nginx
-COPY --from=build /usr/sbin/nginx   /usr/sbin/nginx
+COPY --from=build /usr/sbin/nginx /usr/sbin/nginx
 COPY --from=build /usr/lib/nginx /usr/lib/nginx
-COPY --from=build /usr/local/lib/perl5  /usr/local/lib/perl5
-COPY --from=build /usr/lib/perl5/core_perl/perllocal.pod    /usr/lib/perl5/core_perl/perllocal.pod
-COPY --from=build /usr/local/modsecurity/lib/libmodsecurity.so.3    /usr/local/modsecurity/lib/libmodsecurity.so.3
+COPY --from=build /usr/local/lib/perl5 /usr/local/lib/perl5
+COPY --from=build /usr/lib/perl5/core_perl/perllocal.pod /usr/lib/perl5/core_perl/perllocal.pod
+COPY --from=build /usr/local/modsecurity/lib/libmodsecurity.so.3 /usr/local/modsecurity/lib/libmodsecurity.so.3
 
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY dnsmasq.conf /etc/dnsmasq.conf
-
-RUN sed -i "s/999/99/" /etc/group
-RUN addgroup -g 999 -S nginx \
+RUN sed -i "s/999/99/" /etc/group \
+    && addgroup -g 999 -S nginx \
     && adduser -u 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
-RUN apk add --no-cache \
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add --no-cache \
     ca-certificates \
     tzdata \
     tini \
@@ -183,11 +181,12 @@ RUN apk add --no-cache \
     geoip \
     libmaxminddb-libs \
     libldap \
-    gd-dev  \
+    gd-dev \
     dnsmasq \
     curl
 
-RUN pip install --no-cache-dir \
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir \
     "setuptools<81" \
     "supervisor==4.3.0"
 
@@ -202,24 +201,22 @@ RUN mkdir -p /var/log/nginx/ \
     && ln -s /usr/lib/nginx/modules /etc/nginx/modules \
     && chown --verbose nginx:nginx -R /var/log/nginx
 
-COPY --from=build /src/ModSecurity/unicode.mapping  /etc/nginx/modsec/unicode.mapping
+COPY --from=build /src/ModSecurity/unicode.mapping /etc/nginx/modsec/unicode.mapping
 COPY --from=build /src/ModSecurity/modsecurity.conf-recommended /etc/nginx/modsec/modsecurity.conf.example
+
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY dnsmasq.conf /etc/dnsmasq.conf
 
 LABEL maintainer="eXo Platform <docker@exoplatform.com>"
 
-# show env
-RUN env | sort
-
-# test the configuration
 RUN nginx -V; nginx -t
 
 EXPOSE 80 81 443
 
 STOPSIGNAL SIGTERM
 
-# prepare to switch to non-root - update file permissions
-RUN chown --verbose nginx:nginx \
-    /var/run/nginx.pid
+RUN chown --verbose nginx:nginx /var/run/nginx.pid
 
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["/usr/local/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

@@ -1,12 +1,12 @@
 FROM alpine:3.22 AS build
 
 ARG BUILD
-ARG NGX_MAINLINE_VER=1.30.2
-ARG MODSEC_VER=v3.0.14
-ARG OPENSSL_VER=openssl-4.0.0
+ARG NGX_MAINLINE_VER=1.30.3
+ARG MODSEC_VER=v3.0.15
+ARG OPENSSL_VER=openssl-4.0.1
 ARG NGX_BROTLI=master
-ARG NGX_HEADERS_MORE=v0.39
-ARG NGX_NJS=0.9.8
+ARG NGX_HEADERS_MORE=v0.40
+ARG NGX_NJS=0.9.9
 ARG NGX_MODSEC=v1.0.4
 ARG NGX_GEOIP2=3.4
 ARG NGX_SECURITY_HEADERS=0.3.0
@@ -189,7 +189,7 @@ RUN apk add --no-cache \
 
 RUN pip install --no-cache-dir \
     "setuptools<81" \
-    "supervisor==4.2.5"
+    "supervisor==4.3.0"
 
 ENV PYTHONWARNINGS="ignore::UserWarning"
 

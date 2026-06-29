@@ -74,11 +74,11 @@ jobs:
       - parse-docker-build-env
       - build-platforms
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: amd64-digest
           path: /tmp/digests
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: arm64-digest
           path: /tmp/digests

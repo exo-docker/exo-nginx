@@ -62,7 +62,7 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       - name: Save digest
         run: echo "${{ steps.build.outputs.digest }}" > "/tmp/${{ matrix.arch }}.digest"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.arch }}-digest
           path: /tmp/${{ matrix.arch }}.digest

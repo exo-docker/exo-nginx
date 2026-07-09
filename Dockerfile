@@ -12,6 +12,8 @@ ARG NGX_GEOIP2=3.4
 ARG NGX_SECURITY_HEADERS=0.3.0
 ARG NGX_LDAP=v1.8
 ARG NGX_UPSTREAM_JVM_ROUTE=master
+ARG OQS_VER=main
+ARG OQS_PROVIDER_VER=main
 
 WORKDIR /src
 
@@ -109,7 +111,7 @@ RUN cd /src/nginx \
     --without-poll_module \
     --without-select_module \
     --with-openssl="/src/openssl" \
-    --with-openssl-opt="no-ssl3 no-ssl3-method no-weak-ssl-ciphers" \
+    --with-openssl-opt="shared no-ssl3 no-ssl3-method no-weak-ssl-ciphers" \
     --with-mail=dynamic \
     --with-mail_ssl_module \
     --with-http_image_filter_module=dynamic \
@@ -149,6 +151,35 @@ RUN cd /src/nginx \
     && strip -s /usr/sbin/nginx \
     && strip -s /usr/lib/nginx/modules/*.so
 
+# Install OpenSSL shared libraries from the nginx-built OpenSSL
+RUN mkdir -p /usr/local/lib /usr/local/include/openssl \
+    && cp -r /src/openssl/include/openssl/*.h /usr/local/include/openssl/ \
+    && find /src/openssl -name 'libcrypto.so*' -exec cp -f {} /usr/local/lib/ \; \
+    && find /src/openssl -name 'libssl.so*' -exec cp -f {} /usr/local/lib/ \; \
+    && ls -la /usr/local/lib/libcrypto.so*
+
+# Build and install liboqs (post-quantum crypto library)
+ARG OQS_VER
+RUN git clone --recursive --depth 1 --branch ${OQS_VER} https://github.com/open-quantum-safe/liboqs.git /src/liboqs \
+    && cmake -S /src/liboqs -B /src/liboqs/build \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DBUILD_SHARED_LIBS=ON \
+        -DOPENSSL_ROOT_DIR=/usr/local \
+    && cmake --build /src/liboqs/build --parallel "$(nproc)" \
+    && cmake --install /src/liboqs/build
+
+# Build and install oqs-provider (OpenSSL 3.x provider for PQC algorithms)
+ARG OQS_PROVIDER_VER
+RUN git clone --recursive --depth 1 --branch ${OQS_PROVIDER_VER} https://github.com/open-quantum-safe/oqs-provider.git /src/oqs-provider \
+    && cmake -S /src/oqs-provider -B /src/oqs-provider/build \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DOPENSSL_ROOT_DIR=/usr/local \
+        -Dliboqs_DIR=/usr/local/lib/cmake/liboqs \
+    && cmake --build /src/oqs-provider/build --parallel "$(nproc)" \
+    && cmake --install /src/oqs-provider/build \
+    && mkdir -p /usr/local/lib/ossl-modules \
+    && cp -f /src/oqs-provider/build/lib/oqsprovider.so /usr/local/lib/ossl-modules/oqsprovider.so \
+    && strip -s /usr/local/lib/ossl-modules/oqsprovider.so
 
 FROM python:alpine3.22
 
@@ -207,6 +238,14 @@ COPY --from=build /src/ModSecurity/modsecurity.conf-recommended /etc/nginx/modse
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY dnsmasq.conf /etc/dnsmasq.conf
+COPY openssl.cnf /etc/ssl/openssl.cnf
+
+ENV OPENSSL_CONF=/etc/ssl/openssl.cnf
+
+COPY --from=build /usr/local/lib/libcrypto.so* /usr/local/lib/
+COPY --from=build /usr/local/lib/libssl.so* /usr/local/lib/
+COPY --from=build /usr/local/lib/liboqs.so* /usr/local/lib/
+COPY --from=build /usr/local/lib/ossl-modules/oqsprovider.so /usr/local/lib/ossl-modules/oqsprovider.so
 
 LABEL maintainer="eXo Platform <docker@exoplatform.com>"
 

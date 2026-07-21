@@ -1,13 +1,13 @@
-FROM alpine:3.22 AS build
+FROM alpine:3.23 AS build
 
 ARG BUILD
 
-ARG NGX_MAINLINE_VER=1.30.3
-ARG QUICTLS_VER=openssl-3.3.0
-ARG MODSEC_VER=v3.0.15
+ARG NGX_MAINLINE_VER=1.30.4
+ARG QUICTLS_VER=openssl-3.3.2
+ARG MODSEC_VER=v3.0.16
 ARG NGX_BROTLI=master
 ARG NGX_HEADERS_MORE=v0.40
-ARG NGX_NJS=0.9.9
+ARG NGX_NJS=1.0.0
 ARG NGX_MODSEC=v1.0.4
 ARG NGX_GEOIP2=3.4
 ARG NGX_SECURITY_HEADERS=0.3.0
@@ -50,7 +50,7 @@ RUN \
     addgroup --gid 999 -S nginx \
     && adduser --uid 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
-RUN git clone --recursive --depth 1 --branch "$QUICTLS_VER" https://github.com/quictls/quictls /src/quictls 
+RUN git clone --recursive --depth 1 --branch "$QUICTLS_VER" https://github.com/quictls/openssl /src/quictls 
 
 # ModSecurity
 
@@ -146,7 +146,7 @@ RUN cd /src/nginx \
     && strip -s /usr/sbin/nginx \
     && strip -s /usr/lib/nginx/modules/*.so
 
-FROM python:alpine3.22
+FROM python:alpine3.23
 
 COPY --from=build /etc/nginx /etc/nginx 
 COPY --from=build /usr/sbin/nginx   /usr/sbin/nginx

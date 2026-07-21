@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1
-FROM alpine:3.22 AS build
+FROM alpine:3.23 AS build
 
-ARG NGX_MAINLINE_VER=1.30.3
-ARG MODSEC_VER=v3.0.15
+ARG NGX_MAINLINE_VER=1.30.4
+ARG MODSEC_VER=v3.0.16
 ARG OPENSSL_VER=openssl-4.0.1
 ARG NGX_BROTLI=master
 ARG NGX_HEADERS_MORE=v0.40
-ARG NGX_NJS=0.9.9
+ARG NGX_NJS=1.0.0
 ARG NGX_MODSEC=v1.0.4
 ARG NGX_GEOIP2=3.4
 ARG NGX_SECURITY_HEADERS=0.3.0
@@ -150,7 +150,7 @@ RUN cd /src/nginx \
     && strip -s /usr/lib/nginx/modules/*.so
 
 
-FROM python:alpine3.22
+FROM python:alpine3.23
 
 COPY --from=build /etc/nginx /etc/nginx
 COPY --from=build /usr/sbin/nginx /usr/sbin/nginx

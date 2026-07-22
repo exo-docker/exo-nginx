@@ -4,9 +4,9 @@ on:
   push:
     tags:
       - '*'
-    branches: [ http3 ]
+    branches: [ 1.28.x-h3 ]
 env:
-  BRANCH_BUILD_TAGS: "http3"
+  BRANCH_BUILD_TAGS: "1.28_http3"
 jobs:
   parse-docker-build-env:
     name: 'Parse Docker Build Environment'

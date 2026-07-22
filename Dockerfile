@@ -3,14 +3,14 @@ FROM alpine:3.23 AS build
 
 ARG NGX_MAINLINE_VER=1.30.4
 ARG MODSEC_VER=v3.0.16
-ARG OPENSSL_VER=openssl-4.0.1
+ARG OPENSSL_VER=openssl-3.5.7
 ARG NGX_BROTLI=master
 ARG NGX_HEADERS_MORE=v0.40
 ARG NGX_NJS=1.0.0
 ARG NGX_MODSEC=v1.0.4
 ARG NGX_GEOIP2=3.4
 ARG NGX_SECURITY_HEADERS=0.3.0
-ARG NGX_LDAP=v1.8
+ARG NGX_LDAP=v2.0.0
 ARG NGX_UPSTREAM_JVM_ROUTE=master
 
 WORKDIR /src
@@ -67,7 +67,7 @@ RUN git clone --recursive --depth 1 --branch "$NGX_BROTLI"             https://g
     git clone --recursive --depth 1 --branch "$NGX_GEOIP2"             https://github.com/leev/ngx_http_geoip2_module           /src/ngx_http_geoip2_module & \
     git clone --recursive --depth 1 --branch "$NGX_SECURITY_HEADERS"   https://github.com/GetPageSpeed/ngx_security_headers     /src/ngx_security_headers & \
     git clone --recursive --depth 1 --branch "$NGX_UPSTREAM_JVM_ROUTE" https://github.com/hbenali/nginx-upstream-jvm-route      /src/nginx-upstream-jvm-route & \
-    git clone --recursive --depth 1 --branch "$NGX_LDAP"               https://github.com/Ericbla/nginx-auth-ldap               /src/nginx-auth-ldap & \
+     git clone --recursive --depth 1 --branch "$NGX_LDAP"               https://github.com/hbenali/nginx-auth-ldap               /src/nginx-auth-ldap & \
     wait
 
 # Download and prepare nginx source

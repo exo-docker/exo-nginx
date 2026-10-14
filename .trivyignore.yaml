@@ -1,9 +1,16 @@
 # Documented Trivy exceptions. Everything else is reported. Every entry needs
 # a written reason (why it is safe or unavoidable), and is reviewed periodically.
-#
-# misconfigurations:
-#   - id: DS-0002
-#     paths:
-#       - Dockerfile
-#     statement: >-
-#       Why this is intentional.
+misconfigurations:
+  - id: DS-0002
+    paths:
+      - Dockerfile
+    statement: >-
+      The container starts supervisord as root on purpose: it launches nginx
+      and dnsmasq, and the nginx master process needs root to bind ports 80
+      and 443 before the workers drop to the unprivileged nginx user.
+  - id: DS-0013
+    paths:
+      - Dockerfile
+    statement: >-
+      `cd` inside a RUN step in the throwaway build stage. The stage is not
+      shipped, so WORKDIR would add nothing.

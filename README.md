@@ -2,7 +2,7 @@
 
 This repository contains a custom build of Nginx with additional modules, including support for ModSecurity, HTTP/3, and various other enhancements. This image is designed for use in environments requiring advanced HTTP and security functionalities.
 
-Current versions: Nginx `1.30.5`, OpenSSL `4.0.2`, njs `1.0.1`, ModSecurity `3.0.16`.
+Current versions: Nginx `1.30.6`, OpenSSL `4.0.3`, njs `1.0.2`, ModSecurity `3.0.17`.
 
 ## Usage
 

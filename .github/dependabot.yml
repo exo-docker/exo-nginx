@@ -8,3 +8,9 @@ updates:
     schedule:
       # Check for updates to GitHub Actions every week
       interval: "weekly"
+
+  # Base images (alpine / python-alpine) in the Dockerfile
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"

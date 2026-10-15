@@ -187,8 +187,8 @@ RUN --mount=type=cache,target=/var/cache/apk \
 
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-cache-dir \
-    "setuptools<81" \
-    "supervisor==4.3.0"
+    "supervisor==4.3.0" \
+    && pip uninstall -y pip
 
 ENV PYTHONWARNINGS="ignore::UserWarning"
 

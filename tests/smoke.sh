@@ -17,6 +17,11 @@ docker run --rm --entrypoint nginx "$IMAGE" -V 2>&1 | grep -q 'built with OpenSS
 docker run --rm --entrypoint supervisord "$IMAGE" --version >/dev/null || fail "supervisord missing"
 docker run --rm --entrypoint dnsmasq "$IMAGE" --version >/dev/null || fail "dnsmasq missing"
 
+echo "== no pip/setuptools or their vendored libraries (Trivy CVEs)"
+left=$(docker run --rm --entrypoint sh "$IMAGE" -c \
+  'find / -xdev \( -iname "urllib3*" -o -iname "msgpack*" -o -iname "setuptools*" -o -name pip -o -name "pip-*" \) -not -path "/proc/*" 2>/dev/null')
+[ -z "$left" ] || fail "unexpected Python tooling in the image: $left"
+
 echo "== every dynamic module loads"
 docker run --rm --entrypoint sh "$IMAGE" -c '
   set -e

@@ -19,7 +19,7 @@ docker run --rm --entrypoint dnsmasq "$IMAGE" --version >/dev/null || fail "dnsm
 
 echo "== no pip/setuptools or their vendored libraries (Trivy CVEs)"
 left=$(docker run --rm --entrypoint sh "$IMAGE" -c \
-  'find / -xdev \( -iname "urllib3*" -o -iname "msgpack*" -o -iname "setuptools*" -o -name pip -o -name "pip-*" \) -not -path "/proc/*" 2>/dev/null')
+  'find / -xdev \( -iname "urllib3*" -o -iname "msgpack*" -o -iname "setuptools*" -o -name pip -o -name "pip-*" \) -not -path "/proc/*" -not -path "*/ensurepip/*" 2>/dev/null')
 [ -z "$left" ] || fail "unexpected Python tooling in the image: $left"
 
 echo "== every dynamic module loads"

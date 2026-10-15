@@ -12,7 +12,7 @@ trap cleanup EXIT
 echo "== versions"
 ver=$(docker run --rm --entrypoint nginx "$IMAGE" -v 2>&1)
 echo "$ver"
-[ -z "$EXPECTED" ] || grep -q "nginx/$EXPECTED" <<<"$ver" || fail "expected nginx $EXPECTED"
+[ -z "$EXPECTED" ] || grep -q "/$EXPECTED\b" <<<"$ver" || fail "expected nginx $EXPECTED"
 docker run --rm --entrypoint nginx "$IMAGE" -V 2>&1 | grep -q 'built with OpenSSL' || fail "no OpenSSL in nginx -V"
 docker run --rm --entrypoint supervisord "$IMAGE" --version >/dev/null || fail "supervisord missing"
 docker run --rm --entrypoint dnsmasq "$IMAGE" --version >/dev/null || fail "dnsmasq missing"

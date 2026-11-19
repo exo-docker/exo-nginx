@@ -26,7 +26,10 @@ echo "== every dynamic module loads"
 docker run --rm --entrypoint sh "$IMAGE" -c '
   set -e
   conf=/tmp/modules.conf
-  for m in /usr/lib/nginx/modules/*.so; do echo "load_module $m;"; done > "$conf"
+  # ngx_stream_module must load before the stream_* modules that depend on it
+  d=/usr/lib/nginx/modules
+  { echo "load_module $d/ngx_stream_module.so;"
+    for m in $d/*.so; do [ "$m" = "$d/ngx_stream_module.so" ] || echo "load_module $m;"; done; } > "$conf"
   cat "$conf"
   { cat "$conf"; echo "events {} http { server { listen 8080; } }"; } > /tmp/nginx-all.conf
   nginx -t -c /tmp/nginx-all.conf

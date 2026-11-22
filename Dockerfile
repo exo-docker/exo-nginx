@@ -183,7 +183,8 @@ RUN sed -i "s/999/99/" /etc/group \
     && adduser -u 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
 RUN --mount=type=cache,target=/var/cache/apk \
-    apk add --no-cache \
+    apk upgrade --no-cache \
+    && apk add --no-cache \
     ca-certificates \
     tzdata \
     tini \

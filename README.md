@@ -44,7 +44,7 @@ The following modules are included and activated in this build:
 ### Static Third-Party modules
 
 - `ngx_security_headers`: Enforces security-related headers.
-- `nginx-auth-ldap`: Adds LDAP-based authentication.
+- `nginx-auth-ldap` (`hbenali/nginx-auth-ldap` v2.1.0): LDAP authentication with stateless (default) or pooled connections, LDAP attributes and custom headers injected into the response. Built with a static, TLS-less libldap; LDAPS goes through nginx's own OpenSSL (QuicTLS).
 
 ### Stream Modules
 

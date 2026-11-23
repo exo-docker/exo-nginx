@@ -22,7 +22,7 @@ jobs:
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             TAG="${GITHUB_REF#refs/tags/}"
             echo "This is a tag push ($TAG)"
-            if [[ ! "$TAG" =~ ^1\.[0-9]+\.[0-9]+(-h3)?$ ]]; then
+            if [[ ! "$TAG" =~ ^1\.[0-9]+\.[0-9]+(-h3)?(_[0-9]+)?$ ]]; then
               echo "❌ Invalid tag format: $TAG"
               exit 1
             fi

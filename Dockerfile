@@ -11,7 +11,7 @@ ARG NGX_NJS=1.0.2
 ARG NGX_MODSEC=v1.0.4
 ARG NGX_GEOIP2=3.4
 ARG NGX_SECURITY_HEADERS=0.3.0
-ARG NGX_LDAP=v1.8
+ARG NGX_LDAP=v2.1.0
 ARG NGX_UPSTREAM_JVM_ROUTE=master
 
 WORKDIR /src
@@ -73,7 +73,7 @@ RUN (git clone --recursive --depth 1 --branch "$NGX_BROTLI" https://github.com/g
     && git clone --recursive --depth 1 --branch "$NGX_GEOIP2" https://github.com/leev/ngx_http_geoip2_module /src/ngx_http_geoip2_module \
     && git clone --recursive --depth 1 --branch "$NGX_SECURITY_HEADERS" https://github.com/GetPageSpeed/ngx_security_headers /src/ngx_security_headers \
     && git clone --recursive --depth 1 --branch "$NGX_UPSTREAM_JVM_ROUTE" https://github.com/hbenali/nginx-upstream-jvm-route /src/nginx-upstream-jvm-route \
-    && git clone --recursive --depth 1 --branch "$NGX_LDAP" https://github.com/Ericbla/nginx-auth-ldap /src/nginx-auth-ldap )
+    && git clone --recursive --depth 1 --branch "$NGX_LDAP" https://github.com/hbenali/nginx-auth-ldap /src/nginx-auth-ldap )
 
 # Nginx
 
@@ -87,8 +87,22 @@ RUN (wget https://nginx.org/download/nginx-"$NGX_MAINLINE_VER".tar.gz -O - | tar
     && patch -p1 < dynamic_tls_records.patch \
     && patch -p1 < /src/nginx-upstream-jvm-route/jvm_route.patch)
 
+# OpenLDAP client libs without TLS. The ldap module does its TLS through nginx's own OpenSSL (QuicTLS here,
+# via ldap_init_fd), so libldap must not load a second, system OpenSSL. Static: nothing from libldap is needed at runtime.
+ARG OPENLDAP_VER=2.6.10
+RUN wget -qO- https://www.openldap.org/software/download/OpenLDAP/openldap-release/openldap-${OPENLDAP_VER}.tgz | tar xzC /src \
+    && cd /src/openldap-${OPENLDAP_VER} \
+    && ./configure --prefix=/opt/ldap --disable-slapd --disable-slurpd --without-cyrus-sasl --without-tls \
+       --enable-static --disable-shared --disable-backends --disable-overlays \
+    && make depend >/dev/null \
+    && make -C include install \
+    && make -j "$(nproc)" -C libraries \
+    && make -C libraries install
+
 RUN cd /src/nginx \
     && ./configure \
+    --with-cc-opt="-I/opt/ldap/include" \
+    --with-ld-opt="-L/opt/ldap/lib" \
     --build=${BUILD} \
     --prefix=/etc/nginx \
     --sbin-path=/usr/sbin/nginx \
@@ -140,6 +154,11 @@ RUN cd /src/nginx \
     --add-dynamic-module=/src/ngx_http_geoip2_module \
     --add-module=/src/nginx-auth-ldap \
     --add-module=/src/ngx_security_headers \
+    # Dynamic modules (njs webcrypto) resolve OpenSSL symbols from the nginx binary, but a static
+    # libcrypto.a only keeps the objects nginx itself uses. Keep all of it so the modules never
+    # fall back on a system OpenSSL.
+    && sed -i "s|/src/quictls/.openssl/lib/libssl.a /src/quictls/.openssl/lib/libcrypto.a|-Wl,--whole-archive /src/quictls/.openssl/lib/libssl.a /src/quictls/.openssl/lib/libcrypto.a -Wl,--no-whole-archive|" objs/Makefile \
+    && grep -q -- "--whole-archive" objs/Makefile \
     && make -j "$(nproc)" \
     && make -j "$(nproc)" install \
     && rm /src/nginx/*.patch \
@@ -164,7 +183,8 @@ RUN sed -i "s/999/99/" /etc/group
 RUN addgroup -g 999 -S nginx \
     && adduser -u 999 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
-RUN apk add --no-cache \
+RUN apk upgrade --no-cache \
+    && apk add --no-cache \
     ca-certificates \
     tzdata \
     tini \

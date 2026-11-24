@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM alpine:3.24 AS build
 
-ARG NGX_MAINLINE_VER=1.30.7
+ARG NGX_MAINLINE_VER=1.30.8
 ARG MODSEC_VER=v3.0.17
 ARG OPENSSL_VER=openssl-4.1.0
 ARG NGX_BROTLI=master
